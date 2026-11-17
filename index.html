@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>GMX 邮箱日报</title>
+<style>
+  :root{
+    --bg:#f3f4f6; --surface:#ffffff; --surface-2:#f9fafb; --line:#e2e5ea; --line-soft:#eef0f3;
+    --text:#171a1f; --muted:#5b6472; --faint:#8a93a3;
+    --red:#c81e1e; --red-bg:#fdf0ef; --red-line:#f3c6c2;
+    --amber:#9a6206; --amber-bg:#fdf6e3;
+    --star:#8a5a00; --star-bg:#fff7e0; --star-line:#ecd9a0;
+    --blue:#175cd3; --blue-bg:#eef4ff;
+    --green:#067647; --green-bg:#ecfdf3;
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#101216; --surface:#1a1d23; --surface-2:#22262e; --line:#2e333d; --line-soft:#262b33;
+      --text:#eef0f3; --muted:#a7b0bf; --faint:#7c8698;
+      --red:#ff8a80; --red-bg:#2b1a19; --red-line:#5a2d2a;
+      --amber:#f5c04e; --amber-bg:#2b2413;
+      --star:#f5c04e; --star-bg:#2b2413; --star-line:#57481f;
+      --blue:#8ab4ff; --blue-bg:#1c2a4a;
+      --green:#5fd68f; --green-bg:#12291c;
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:15px;line-height:1.55}
+  .wrap{max-width:1560px;margin:0 auto;padding:20px clamp(16px,3vw,40px) 56px;width:100%}
+  button,[role="button"],summary,input{min-height:2.5rem}
+  a{color:var(--blue)}
+
+  /* ---------- header ---------- */
+  .head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 14px;margin-bottom:6px}
+  .head h1{font-size:26px;line-height:1.2;margin:0;letter-spacing:-.01em;font-weight:800}
+  .head .date{font-size:15px;color:var(--muted);font-weight:600;padding-bottom:2px}
+  .pill{margin-left:auto;font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;
+    background:var(--blue-bg);color:var(--blue);white-space:nowrap}
+  .subline{color:var(--muted);font-size:13.5px;margin:2px 0 16px}
+  .subline b{color:var(--text)}
+
+  /* ---------- banners ---------- */
+  .banner{display:flex;gap:12px;align-items:flex-start;background:var(--red-bg);
+    border:1px solid var(--red-line);border-radius:var(--radius);padding:13px 15px;margin-bottom:12px}
+  .banner .dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--red);margin-top:7px}
+  .banner p{margin:0;font-size:14.5px}
+  .banner p b{color:var(--red)}
+  .banner .small{color:var(--muted);font-size:13px;margin-top:2px}
+  .banner.info{background:var(--blue-bg);border-color:var(--line)}
+  .banner.info .dot{background:var(--blue)}
+  .banner.info p b{color:var(--blue)}
+
+  /* ---------- dashboard tiles ---------- */
+  .tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:8px}
+  @media (max-width:640px){.tiles{grid-template-columns:repeat(3,1fr)}}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 12px 9px}
+  .tile b{display:block;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums;font-weight:800}
+  .tile span{font-size:12px;color:var(--muted)}
+  .tile.red b{color:var(--red)} .tile.amber b{color:var(--amber)} .tile.green b{color:var(--green)}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 10px;margin-top:6px}
+  .search{width:100%;border:1px solid var(--line);background:var(--surface);color:var(--text);
+    border-radius:10px;padding:10px 13px;font-size:15px;outline:none}
+  .search:focus{border-color:var(--blue)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+  .chip{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:999px;
+    padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;min-height:2.5rem}
+  .chip[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .kindrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .kindrow .klabel{font-size:12.5px;color:var(--muted);font-weight:700}
+  .chip.kind{padding:6px 12px;font-size:13px;min-height:2.25rem}
+  .chip.kind .kn{color:var(--faint);font-weight:700;margin-left:3px;font-variant-numeric:tabular-nums}
+  .chip.kind[aria-pressed="true"] .kn{color:inherit;opacity:.7}
+  .noresult{display:none;background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);
+    padding:18px;text-align:center;color:var(--muted);font-size:14px;margin-top:10px}
+
+  /* ---------- sections ---------- */
+  h2.sec{font-size:17px;margin:26px 0 4px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  h2.sec .cnt{color:var(--faint);font-size:14px;font-weight:600}
+  h3.sub{font-size:14.5px;margin:16px 0 8px;color:var(--muted);font-weight:700}
+  .sec-note{color:var(--muted);font-size:13px;margin:0 0 10px}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;margin-bottom:10px}
+  .card.red{border-top:3px solid var(--red)}
+  .card.star{border-top:3px solid var(--star-line)}
+  .card-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .tag{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--blue-bg);color:var(--blue)}
+  .tag.kind{background:var(--star-bg);color:var(--star)}
+  .tag.redtag{background:var(--red-bg);color:var(--red)}
+  .acct{font-weight:700;font-size:14.5px;word-break:break-all}
+  .when{margin-left:auto;color:var(--faint);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .summary{font-size:16.5px;line-height:1.6;margin:9px 0 7px;font-weight:550}
+  .meta{color:var(--muted);font-size:13px;word-break:break-word}
+  .key{display:inline-block;background:var(--red-bg);color:var(--red);border:1px solid var(--red-line);
+    border-radius:7px;padding:1px 8px;margin-left:6px;font-weight:700;font-size:12.5px;white-space:nowrap}
+  .key.star{background:var(--star-bg);color:var(--star);border-color:var(--star-line)}
+  .action{margin-top:9px;font-size:13.5px;background:var(--surface-2);border-radius:9px;padding:8px 11px;color:var(--muted)}
+  .action b{color:var(--text)}
+
+  .empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);padding:16px}
+  .empty p{margin:0;color:var(--muted);font-size:14px}
+
+  .listbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:4px 16px}
+  .row{display:flex;gap:10px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line-soft);font-size:14px;flex-wrap:wrap}
+  .row:last-child{border-bottom:none}
+  .row .a{font-weight:650;word-break:break-all}
+  .row .s{color:var(--muted);flex:1 1 180px;min-width:0}
+  .row .d{color:var(--faint);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap;margin-left:auto}
+  .row .n{color:var(--faint);font-size:12.5px;white-space:nowrap}
+  .row .c{color:var(--star);font-weight:700;font-size:12.5px;white-space:nowrap}
+
+  .okline{display:flex;gap:10px;align-items:center;background:var(--green-bg);border:1px solid var(--line);
+    border-radius:var(--radius);padding:12px 16px;font-size:14.5px}
+  .okline .mark{flex:none;width:22px;height:22px;border-radius:50%;background:var(--green);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+
+  .counts-note{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;font-size:14.5px}
+  .counts-note p{margin:0 0 6px}
+  .counts-note p:last-child{margin-bottom:0}
+
+  /* ---------- update / how it works ---------- */
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:28px}
+  .panel h2{font-size:16px;margin:0 0 10px}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media (max-width:640px){.steps{grid-template-columns:1fr}}
+  .step{background:var(--surface-2);border-radius:10px;padding:12px 13px;font-size:13.5px}
+  .step b{display:block;margin-bottom:3px;font-size:14px}
+  .step span{color:var(--muted)}
+  .panel .note{color:var(--muted);font-size:13.5px;margin:12px 0 0}
+  .panel .note b{color:var(--text)}
+
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .btn{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:10px;
+    padding:10px 16px;font-size:14px;font-weight:650;cursor:pointer;min-height:2.75rem}
+  .btn.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .btn:active{opacity:.75}
+  .toast{display:none;font-size:13px;color:var(--green);font-weight:650;align-self:center}
+
+  .foot{color:var(--faint);font-size:12.5px;margin-top:22px;line-height:1.7}
+
+  /* ---------- shop / window identity ---------- */
+  .shopmeta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:13px;color:var(--muted);
+    background:var(--surface-2);border:1px solid var(--line-soft);border-radius:8px;padding:5px 10px;width:fit-content;max-width:100%}
+  .shopmeta b{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums;word-break:break-all}
+  .shopmeta .sep{color:var(--faint)}
+  .row .shop,.row .win{font-size:12.5px;white-space:nowrap;color:var(--muted)}
+  .row .shop{font-weight:650;color:var(--text)}
+  .hidden{display:none !important}
+
+  /* ---------- date fold + scroll (added) ---------- */
+  .fold-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 12px}
+  .fold-controls .hint{font-size:13px;color:var(--muted);margin-right:2px}
+  .fold-btn{border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:999px;padding:7px 13px;font-size:13px;font-weight:650;cursor:pointer;min-height:2.25rem}
+  .fold-btn:active{opacity:.7}
+  .date-group{border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-bottom:12px;overflow:hidden}
+  .date-head{width:100%;display:flex;align-items:center;gap:10px;background:var(--surface-2);border:0;border-bottom:1px solid var(--line-soft);padding:12px 14px;cursor:pointer;text-align:left;color:var(--text);min-height:3rem}
+  .date-head strong{font-size:15px;letter-spacing:.01em}
+  .date-head .dmeta{font-size:12.5px;color:var(--muted);font-weight:600;background:var(--surface);border:1px solid var(--line);padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .date-head .scroll-tag{font-size:12px;color:var(--faint);white-space:nowrap}
+  @media (max-width:520px){.date-head .scroll-tag{display:none}}
+  .date-head .chev{margin-left:auto;flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;transition:transform .18s ease}
+  .date-group.is-collapsed .date-head{border-bottom:none}
+  .date-group.is-collapsed .chev{transform:rotate(-90deg)}
+  .date-group.is-collapsed .date-body{display:none}
+  .date-body{max-height:540px;overflow-y:auto;overscroll-behavior:contain;padding:12px 12px 2px;scrollbar-width:thin;scrollbar-color:#b6bec9 transparent}
+  .date-body::-webkit-scrollbar{width:8px}
+  .date-body::-webkit-scrollbar-thumb{background:#c2c9d4;border-radius:999px;border:2px solid var(--surface)}
+  .date-body::-webkit-scrollbar-track{background:transparent}
+  @media (prefers-color-scheme: dark){.date-body{scrollbar-color:#4a5261 transparent}.date-body::-webkit-scrollbar-thumb{background:#4a5261;border-color:var(--surface)}}
+  .date-body .card:last-child{margin-bottom:10px}
+  /* compact list variant */
+  .date-body.list{padding:2px 16px 4px;max-height:380px}
+  .date-body.list .row:last-child{border-bottom:none}
+  #allbox{padding:0;overflow:hidden}
+  #allbox .date-group{border:none;border-bottom:1px solid var(--line-soft);border-radius:0;margin:0}
+  #allbox .date-group:last-child{border-bottom:none}
+  #allbox .date-head{padding:10px 14px}
+  #allbox .date-head strong{font-size:14px}
+
+  /* ---------- wide desktop: use the full width ---------- */
+  @media (min-width:1100px){
+    .date-body:not(.list){display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+    .date-body:not(.list) .card{margin-bottom:0}
+    .date-group.is-collapsed .date-body{display:none}
+    .steps{grid-template-columns:repeat(3,1fr)}
+  }
+  @media (min-width:1500px){
+    .date-body:not(.list){grid-template-columns:1fr 1fr 1fr}
+  }
+  @media (max-width:640px){
+    .wrap{padding-left:12px;padding-right:12px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ======= Header ======= -->
+  <div class="head">
+    <h1>GMX 邮箱日报</h1>
+    <span class="date">2026-11-17 · 星期二 · 全量 + 附加邮箱</span>
+    <span class="pill">只看最近 48 小时</span>
+  </div>
+  <p class="subline">检查 <b>2,021</b> 个邮箱（GMX 全量 <b>2,017</b> + 附加邮箱 <b>4</b>：3×163 + 1×iCloud）· GMX 登录成功 <b>2,017 / 2,017</b> · 失败 <b>0</b> · 附加邮箱登录成功 <b>4 / 4</b> · 本页展示 <b>51</b> 条（🔴 1 · ⭐ 46 · 🟡 4）· 最近 48 小时 · 附加邮箱截至 2026-11-17 16:47 UTC；盘中快讯截至 18:23 UTC；GMX 全量截至 15:19 UTC · 名单中 15 个非 GMX 邮箱已按你的决定永久排除，不计入检查、也不算失败。</p>
+
+  <!-- ======= Run summary banner ======= -->
+  <div class="banner info" role="note">
+    <span class="dot" aria-hidden="true"></span>
+    <div>
+      <p><b>本期已合并附加邮箱与盘中快讯：</b>2,017 个 GMX 邮箱全量（15:01 – 15:19 UTC 跑完）+ 4 个附加邮箱（3 个 163 + 1 个 iCloud，数据截至 16:47 UTC）+ 盘中自适应轮询快讯（截至 18:23 UTC），共 2,021 个邮箱全部登录成功、零失败零锁号；本期展示 51 条。</p>
+      <p class="small">48 小时窗口内展示：售出 4 笔、发货面单 4 张、订单提醒 8 条、买家出价 15 封、买家消息 12 封、平台通知 3 封；收藏互动 32 封、普通通知 5 封、营销 1 封只计数不展示（GMX 口径）。买家私信邮件不含正文，只标旗（谁 / 哪件商品 / 时间）；出价邮件含全文，金额都写在卡片里。</p>
+    </div>
+  </div>
+
+  <!-- ======= Deadline banner ======= -->
+  <div class="banner" role="note">
+    <span class="dot" aria-hidden="true"></span>
+    <div>
+      <p><b>jacqueline_scene1975@gmx.com 有硬截止：</b>11-23 前不验证邮箱，账号将被停用，之后 30 天永久删除。今天另有 2 封新的验证邮件到这个邮箱（14:24、14:25 UTC）。</p>
+      <p class="small">本页只标旗、不给验证入口；这个号怎么处理在它自己的专属聊天里定。</p>
+    </div>
+  </div>
+
+  <!-- ======= Dashboard (48h window) ======= -->
+  <div class="tiles" aria-label="本期概览（48 小时窗口）">
+    <div class="tile"><b>2,021</b><span>已检查（全量 + 附加）</span></div>
+    <div class="tile red"><b>1</b><span>🔴 紧急（48h 内）</span></div>
+    <div class="tile"><b>46</b><span>⭐ 优先条数（48h 内）</span></div>
+    <div class="tile amber"><b>0</b><span>💷 IBAN 验证（48h 内）</span></div>
+    <div class="tile amber"><b>4</b><span>🟡 验证类（48h 内）</span></div>
+    <div class="tile green"><b>0</b><span>❌ 登录失败</span></div>
+  </div>
+
+  <!-- ======= Toolbar ======= -->
+  <div class="toolbar">
+    <input class="search" id="q" type="search" placeholder="搜邮箱、店铺名、窗口名或主题，例如 ruvendejsok / 20251008-16-46 / offer" aria-label="搜索邮箱或主题" />
+    <div class="chips" role="group" aria-label="按等级筛选">
+      <button class="chip" data-f="all" aria-pressed="true">全部</button>
+      <button class="chip" data-f="red" aria-pressed="false">🔴 紧急</button>
+      <button class="chip" data-f="star" aria-pressed="false">⭐ 优先</button>
+      <button class="chip" data-f="iban" aria-pressed="false">💷 IBAN</button>
+      <button class="chip" data-f="yellow" aria-pressed="false">🟡 验证</button>
+      <button class="chip" data-f="white" aria-pressed="false">⚪ 普通</button>
+    </div>
+    <div class="kindrow" role="group" aria-label="按邮件类型筛选">
+      <span class="klabel">按类型：</span>
+      <button class="chip kind" data-k="all" aria-pressed="true">全部类型</button>
+      <button class="chip kind" data-k="sold" aria-pressed="false">售出<span class="kn">4</span></button>
+      <button class="chip kind" data-k="label" aria-pressed="false">发货面单<span class="kn">4</span></button>
+      <button class="chip kind" data-k="reminder" aria-pressed="false">订单提醒<span class="kn">8</span></button>
+      <button class="chip kind" data-k="offer" aria-pressed="false">买家出价<span class="kn">15</span></button>
+      <button class="chip kind" data-k="message" aria-pressed="false">买家消息<span class="kn">12</span></button>
+      <button class="chip kind" data-k="platform" aria-pressed="false">平台通知<span class="kn">3</span></button>
+    </div>
+  </div>
+  <div class="noresult" id="noresult">没有匹配的条目 — 换个关键词或切回「全部」。注意：本页只含最近 48 小时内的邮件，更早的邮件不在本页。</div>
+
+  <!-- ======= 🔴 Urgent ======= -->
+  <section data-sec="red">
+    <h2 class="sec">🔴 紧急 <span class="cnt">1 条 · 48 小时内</span></h2>
+
+        <article class="card red" data-level="red" data-levels="red" data-text="jacqueline_scene1975@gmx.com Verify your email to keep your account active Vinted 催验证：11-23 前不验证邮箱，账号将被停用，30 天后永久删除。 ⏰ 截止 11-23 店铺 jacquelinescene1975 窗口 未找到 审计库未找到 验证 截止 11-23 停用 删除">
+      <div class="card-top">
+        <span class="tag redtag">🔴 带截止催办</span>
+        <span class="acct">jacqueline_scene1975@gmx.com</span>
+        <span class="when">11-17 03:00</span>
+      </div>
+      <div class="shopmeta">店铺 <b>jacquelinescene1975</b><span class="sep">·</span>窗口 <b>审计库未找到</b></div>
+      <p class="summary">Vinted 催验证：11-23 前不验证邮箱，账号将被停用，30 天后永久删除。<span class="key">⏰ 截止 11-23</span></p>
+      <div class="meta">主题：Verify your email to keep your account active · 今天另有 2 封验证邮件（见下方 🟡 区）</div>
+      <div class="action">本页<b>只标旗</b>，不提供验证入口；处理方式在 jacqueline 的专属聊天里定。</div>
+    </article>
+  </section>
+
+  <!-- ======= ⭐ Priority ======= -->
+  <section data-sec="star">
+    <h2 class="sec">⭐ 优先处理 <span class="cnt">46 条 · 16 个账号 · 48 小时内</span></h2>
+    <p class="sec-note">订单 16 条（售出 4 · 发货面单 4 · 订单提醒 8）· 买家出价 15 条 · 买家消息 12 条 · 平台通知 3 条，其中 19 条来自 4 个附加邮箱（3×163 + 1×iCloud，含盘中轮询新增）。用上方「按类型」可只看某一类；每个日期组内的卡片已按 售出 → 面单 → 提醒 → 出价 → 消息 → 平台 的顺序归类排列。每张卡已标注<b>店铺名</b>与<b>窗口名</b>（店铺名从邮件正文称呼提炼，窗口名按店铺名在店铺审计站查得；jacquelinescene1975 审计库未找到窗口）。出价给全内容（出价人 / 金额 / 原价）；私信只标旗，正文在 Vinted 站内、邮件里没有，本日报不登录 Vinted。</p>
+    <div class="fold-controls" id="starFoldControls">
+      <span class="hint">已按日期折叠 — 点日期条展开 / 收起，每组内可上下滚动：</span>
+      <button type="button" class="fold-btn" id="expandAllStar">全部展开</button>
+      <button type="button" class="fold-btn" id="collapseAllStar">全部折叠</button>
+    </div>
+    <div id="starDateGroups"></div>
+
+    <h3 class="sub">订单 · 售出、发货与提醒（16 条）</h3>
+
+
+    <article class="card star" data-level="star" data-levels="star" data-text="wy6532075@163.com Order update for Dries van noten dark brown suede trainers 买家 alexsullivan87 已确认收货；款项将于 11-19 19:20 前自动到账（买家不报问题的话）。 订单提醒 待到账 店铺 店名未提炼 窗口 —">
+      <div class="card-top"><span class="tag kind">⭐ 订单提醒</span><span class="acct">wy6532075@163.com</span><span class="when">11-17 18:21</span></div>
+      <div class="shopmeta">店铺 <b>店名未提炼</b><span class="sep">·</span>窗口 <b>—</b></div>
+      <p class="summary">买家 alexsullivan87 已确认收货；款项将于 11-19 19:20 前自动到账（买家不报问题的话）。<span class="key star">待到账</span></p>
+      <div class="meta">主题：Order update for Dries van noten dark brown suede trainers</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="wy6532075@163.com Your payment is being sent to your bank £28.00 提现已发起，正在从 Vinted 余额打往银行账户，预计 11-24 到账。 订单提醒 £28.00 店铺 teriaennm498 窗口 GB250821-C-18">
+      <div class="card-top"><span class="tag kind">⭐ 订单提醒</span><span class="acct">wy6532075@163.com</span><span class="when">11-17 16:45</span></div>
+      <div class="shopmeta">店铺 <b>teriaennm498</b><span class="sep">·</span>窗口 <b>GB250821-C-18</b></div>
+      <p class="summary">£28.00 提现已发起，正在从 Vinted 余额打往银行账户，预计 11-24 到账。<span class="key star">£28.00</span></p>
+      <div class="meta">主题：Your payment is being sent to your bank</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="wy6532075@163.com Your payment is being sent to your bank £70.00 提现已发起，正在从 Vinted 余额打往银行账户。 订单提醒 £70.00 店铺 vinton7 窗口 GB250723-2">
+      <div class="card-top"><span class="tag kind">⭐ 订单提醒</span><span class="acct">wy6532075@163.com</span><span class="when">11-17 16:00</span></div>
+      <div class="shopmeta">店铺 <b>vinton7</b><span class="sep">·</span>窗口 <b>GB250723-2</b></div>
+      <p class="summary">£70.00 提现已发起，正在从 Vinted 余额打往银行账户。<span class="key star">£70.00</span></p>
+      <div class="meta">主题：Your payment is being sent to your bank</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="wy6532075@163.com Order update for Kate Spade Gold Bracelet with Strawberry Charm 买家 kimsutt 已确认收货；款项将于 11-19 16:29 前自动到账（买家不报问题的话）。 订单提醒 待到账 店铺 vinton7 窗口 GB250723-2">
+      <div class="card-top"><span class="tag kind">⭐ 订单提醒</span><span class="acct">wy6532075@163.com</span><span class="when">11-17 15:37</span></div>
+      <div class="shopmeta">店铺 <b>vinton7</b><span class="sep">·</span>窗口 <b>GB250723-2</b></div>
+      <p class="summary">买家 kimsutt 已确认收货；款项将于 11-19 16:29 前自动到账（买家不报问题的话）。<span class="key star">待到账</span></p>
+      <div class="meta">主题：Order update for Kate Spade Gold Bracelet with Strawberry Charm</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="eeftinggonin@gmx.com You&#x27;ve sold an item on Vinted! (with Item Verification) frances372 买下 The Row 平台靴 UK5（带商品验证）；验证通过、买家确认后付款进余额。 售出 今日售出 店铺 eeftinggo 窗口 20251013-15-10">
+      <div class="card-top"><span class="tag kind">⭐ 售出</span><span class="acct">eeftinggonin@gmx.com</span><span class="when">11-17 14:08</span></div>
+      <div class="shopmeta">店铺 <b>eeftinggo</b><span class="sep">·</span>窗口 <b>20251013-15-10</b></div>
+      <p class="summary">frances372 买下 The Row 平台靴 UK5（带商品验证）；验证通过、买家确认后付款进余额。<span class="key star">今日售出</span></p>
+      <div class="meta">主题：You've sold an item on Vinted! (with Item Verification)</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="xzxteclz1214@icloud.com Your buyer wants to cancel a transaction 买家 ericabugos1985 申请取消 Sézane Lucie 夹克（S 码）：明天去度假、来不及收货；可在对话页接受或拒绝。 订单提醒 取消申请 店铺 linearout 窗口 EU20260-05-18-12-30">
+      <div class="card-top"><span class="tag kind">⭐ 订单提醒</span><span class="acct">xzxteclz1214@icloud.com</span><span class="when">11-17 11:29</span></div>
+      <div class="shopmeta">店铺 <b>linearout</b><span class="sep">·</span>窗口 <b>EU20260-05-18-12-30</b></div>
+      <p class="summary">买家 ericabugos1985 申请取消 Sézane Lucie 夹克（S 码）：明天去度假、来不及收货；可在对话页接受或拒绝。<span class="key star">取消申请</span></p>
+      <div class="meta">主题：Your buyer wants to cancel a transaction</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="xzxteclz1214@icloud.com Order update for Sézane Adeline Knit Cardigan 催发货：尽快把包裹送到 Royal Mail 投递点，否则订单将被取消。 订单提醒 催发货 店铺 linearout 窗口 EU20260-05-18-12-30">
+      <div class="card-top"><span class="tag kind">⭐ 订单提醒</span><span class="acct">xzxteclz1214@icloud.com</span><span class="when">11-17 10:41</span></div>
+      <div class="shopmeta">店铺 <b>linearout</b><span class="sep">·</span>窗口 <b>EU20260-05-18-12-30</b></div>
+      <p class="summary">催发货：尽快把包裹送到 Royal Mail 投递点，否则订单将被取消。<span class="key star">催发货</span></p>
+      <div class="meta">主题：Order update for Sézane Adeline Knit Cardigan</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="xzxteclz1214@icloud.com Order update for Danielle Guizio Black Midi Skirt in XS 催发货：买家在等，把包裹送到最近的 Royal Mail 投递点。 订单提醒 催发货 店铺 linearout 窗口 EU20260-05-18-12-30">
+      <div class="card-top"><span class="tag kind">⭐ 订单提醒</span><span class="acct">xzxteclz1214@icloud.com</span><span class="when">11-17 10:41</span></div>
+      <div class="shopmeta">店铺 <b>linearout</b><span class="sep">·</span>窗口 <b>EU20260-05-18-12-30</b></div>
+      <p class="summary">催发货：买家在等，把包裹送到最近的 Royal Mail 投递点。<span class="key star">催发货</span></p>
+      <div class="meta">主题：Order update for Danielle Guizio Black Midi Skirt in XS</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="burgess-dennisc3099@gmx.com Order update for JIL sander Hooded Down Jacket 订单提醒：JIL Sander 羽绒服该发货了，买家在等。 订单提醒 待发货提醒 店铺 burgessdennis 窗口 GB20260723-4">
+      <div class="card-top"><span class="tag kind">⭐ 订单提醒</span><span class="acct">burgess-dennisc3099@gmx.com</span><span class="when">11-17 10:23</span></div>
+      <div class="shopmeta">店铺 <b>burgessdennis</b><span class="sep">·</span>窗口 <b>GB20260723-4</b></div>
+      <p class="summary">订单提醒：JIL Sander 羽绒服该发货了，买家在等。<span class="key star">待发货提醒</span></p>
+      <div class="meta">主题：Order update for JIL sander Hooded Down Jacket</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="chancekfz.hyser@gmx.com Totême Bellac cropped faux-fur jacket shipping label – use by 24/11/2026 09:00 发货面单已出（跟踪号 VU982159073GB），须在 11-24 09:00 前寄出。 发货面单 ⏰ 面单截止 11-24 09:00 店铺 chanhys 窗口 20251205-01-15">
+      <div class="card-top"><span class="tag kind">⭐ 发货面单</span><span class="acct">chancekfz.hyser@gmx.com</span><span class="when">11-17 07:39</span></div>
+      <div class="shopmeta">店铺 <b>chanhys</b><span class="sep">·</span>窗口 <b>20251205-01-15</b></div>
+      <p class="summary">发货面单已出（跟踪号 VU982159073GB），须在 11-24 09:00 前寄出。<span class="key star">⏰ 面单截止 11-24 09:00</span></p>
+      <div class="meta">主题：Totême Bellac cropped faux-fur jacket shipping label – use by 24/11/2026 09:00</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="chancekfz.hyser@gmx.com You&#x27;ve sold an item on Vinted drkezza 买下 Totême 短款仿皮草夹克，£95；需 5 天内发货。 售出 £95 · 待发货 店铺 chanhys 窗口 20251205-01-15">
+      <div class="card-top"><span class="tag kind">⭐ 售出</span><span class="acct">chancekfz.hyser@gmx.com</span><span class="when">11-17 06:34</span></div>
+      <div class="shopmeta">店铺 <b>chanhys</b><span class="sep">·</span>窗口 <b>20251205-01-15</b></div>
+      <p class="summary">drkezza 买下 Totême 短款仿皮草夹克，£95；需 5 天内发货。<span class="key star">£95 · 待发货</span></p>
+      <div class="meta">主题：You've sold an item on Vinted</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="chiuky-rago@gmx.com Sézane black sleeveless cotton dress shipping label – use by 23/11/2026 发货面单已出（跟踪号 VU981721844GB），须在 11-23 10:56 前寄出。 发货面单 ⏰ 面单截止 11-23 店铺 chiurago 窗口 20260105-00-53">
+      <div class="card-top"><span class="tag kind">⭐ 发货面单</span><span class="acct">chiuky-rago@gmx.com</span><span class="when">11-17 00:40</span></div>
+      <div class="shopmeta">店铺 <b>chiurago</b><span class="sep">·</span>窗口 <b>20260105-00-53</b></div>
+      <p class="summary">发货面单已出（跟踪号 VU981721844GB），须在 11-23 10:56 前寄出。<span class="key star">⏰ 面单截止 11-23</span></p>
+      <div class="meta">主题：Sézane black sleeveless cotton dress shipping label – use by 23/11/2026</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="ruvendejsha@gmx.com Rick Owens Green Down Jacket shipping label – use by 23/11/2026 发货面单已出（跟踪号 TN108377348GB），须在 11-23 10:56 前寄出。 发货面单 ⏰ 面单截止 11-23 店铺 ruvendejsok 窗口 20251008-16-46">
+      <div class="card-top"><span class="tag kind">⭐ 发货面单</span><span class="acct">ruvendejsha@gmx.com</span><span class="when">11-16 11:27</span></div>
+      <div class="shopmeta">店铺 <b>ruvendejsok</b><span class="sep">·</span>窗口 <b>20251008-16-46</b></div>
+      <p class="summary">发货面单已出（跟踪号 TN108377348GB），须在 11-23 10:56 前寄出。<span class="key star">⏰ 面单截止 11-23</span></p>
+      <div class="meta">主题：Rick Owens Green Down Jacket shipping label – use by 23/11/2026</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="chiuky-rago@gmx.com You&#x27;ve sold an item on Vinted astonsmith 买下 Sézane 黑色无袖连衣裙 L 码，£50；需 5 天内发货。 售出 £50 · 待发货 店铺 chiurago 窗口 20260105-00-53">
+      <div class="card-top"><span class="tag kind">⭐ 售出</span><span class="acct">chiuky-rago@gmx.com</span><span class="when">11-16 10:56</span></div>
+      <div class="shopmeta">店铺 <b>chiurago</b><span class="sep">·</span>窗口 <b>20260105-00-53</b></div>
+      <p class="summary">astonsmith 买下 Sézane 黑色无袖连衣裙 L 码，£50；需 5 天内发货。<span class="key star">£50 · 待发货</span></p>
+      <div class="meta">主题：You've sold an item on Vinted</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="ruvendejsha@gmx.com You&#x27;ve sold an item on Vinted enochblakely123 买下 Rick Owens 绿色羽绒服（带围巾），£120；需 5 天内发货。 售出 £120 · 待发货 店铺 ruvendejsok 窗口 20251008-16-46">
+      <div class="card-top"><span class="tag kind">⭐ 售出</span><span class="acct">ruvendejsha@gmx.com</span><span class="when">11-16 10:56</span></div>
+      <div class="shopmeta">店铺 <b>ruvendejsok</b><span class="sep">·</span>窗口 <b>20251008-16-46</b></div>
+      <p class="summary">enochblakely123 买下 Rick Owens 绿色羽绒服（带围巾），£120；需 5 天内发货。<span class="key star">£120 · 待发货</span></p>
+      <div class="meta">主题：You've sold an item on Vinted</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="burgess-dennisc3099@gmx.com JIL sander Hooded Down Jacket shipping label – use by 20/11/2026 09:37 发货面单已出（跟踪号 TN108371795GB），须在 11-20 09:37 前寄出。 发货面单 ⏰ 面单截止 11-20 店铺 burgessdennis 窗口 GB20260723-4">
+      <div class="card-top"><span class="tag kind">⭐ 发货面单</span><span class="acct">burgess-dennisc3099@gmx.com</span><span class="when">11-16 10:39</span></div>
+      <div class="shopmeta">店铺 <b>burgessdennis</b><span class="sep">·</span>窗口 <b>GB20260723-4</b></div>
+      <p class="summary">发货面单已出（跟踪号 TN108371795GB），须在 11-20 09:37 前寄出。<span class="key star">⏰ 面单截止 11-20</span></p>
+      <div class="meta">主题：JIL sander Hooded Down Jacket shipping label – use by 20/11/2026 09:37</div>
+    </article>
+
+
+    <h3 class="sub">买家出价 · 邮件含全文（15 条）</h3>
+
+
+    <article class="card star" data-level="star" data-levels="star" data-text="wy6532075@163.com New offer for Rick Owens Asymmetrical Placket Stand Collar Quilted Jacket 买家 hanswee 出价 £80.00（原价 £120.00）。 买家出价 £80.00 店铺 quamai36 窗口 GB250805-1">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">wy6532075@163.com</span><span class="when">11-17 18:20</span></div>
+      <div class="shopmeta">店铺 <b>quamai36</b><span class="sep">·</span>窗口 <b>GB250805-1</b></div>
+      <p class="summary">买家 hanswee 出价 £80.00（原价 £120.00）。<span class="key star">£80.00</span></p>
+      <div class="meta">主题：New offer for Rick Owens Asymmetrical Placket Stand Collar Quilted Jacket</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="xzxteclz1214@icloud.com New offer for Makita battery 6ah 18v new 买家 roversno1fan 出价 £20.00（原价 £32.20）。 买家出价 £20.00 店铺 chumsquenc 窗口 20260519-01-46">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">xzxteclz1214@icloud.com</span><span class="when">11-17 16:51</span></div>
+      <div class="shopmeta">店铺 <b>chumsquenc</b><span class="sep">·</span>窗口 <b>20260519-01-46</b></div>
+      <p class="summary">买家 roversno1fan 出价 £20.00（原价 £32.20）。<span class="key star">£20.00</span></p>
+      <div class="meta">主题：New offer for Makita battery 6ah 18v new</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="hxuelili1222@163.com New offer for Le Creuset Disney Mickey Mouse &amp; Minnie Mouse Mini Dish 买家 meghillmanx28 出价 £35.00（原价 £50.00）。 买家出价 £35.00 店铺 colonsandar 窗口 GB250301-J-2">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">hxuelili1222@163.com</span><span class="when">11-17 14:58</span></div>
+      <div class="shopmeta">店铺 <b>colonsandar</b><span class="sep">·</span>窗口 <b>GB250301-J-2</b></div>
+      <p class="summary">买家 meghillmanx28 出价 £35.00（原价 £50.00）。<span class="key star">£35.00</span></p>
+      <div class="meta">主题：New offer for Le Creuset Disney Mickey Mouse &amp; Minnie Mouse Mini Dish</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="hxuelili1222@163.com New offer for SH figuarts demoniacal fit vegito 买家 rachhd94 出价 £57.00（原价 £70.00）。 买家出价 £57.00 店铺 gusreagoser 窗口 GB250526-8">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">hxuelili1222@163.com</span><span class="when">11-17 13:51</span></div>
+      <div class="shopmeta">店铺 <b>gusreagoser</b><span class="sep">·</span>窗口 <b>GB250526-8</b></div>
+      <p class="summary">买家 rachhd94 出价 £57.00（原价 £70.00）。<span class="key star">£57.00</span></p>
+      <div class="meta">主题：New offer for SH figuarts demoniacal fit vegito</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="carol-marquezaecr@gmx.com New offer for Carol Christian Poell Tooth Necklace Pendant ninjja65 出价 £50（原价 £80）买 Carol Christian Poell 牙齿项链。 买家出价 买家出价 £50 / £80 店铺 dawnm555 窗口 260827-1">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">carol-marquezaecr@gmx.com</span><span class="when">11-17 13:38</span></div>
+      <div class="shopmeta">店铺 <b>dawnm555</b><span class="sep">·</span>窗口 <b>260827-1</b></div>
+      <p class="summary">ninjja65 出价 £50（原价 £80）买 Carol Christian Poell 牙齿项链。<span class="key star">买家出价 £50 / £80</span></p>
+      <div class="meta">主题：New offer for Carol Christian Poell Tooth Necklace Pendant</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="katten-eldon7527@gmx.com New offer for American Vintage chaleco de forro polar, talla S susanaefe 出价 €50（原价 €65）买 American Vintage 抓绒背心 S 码。 买家出价 买家出价 €50 / €65 店铺 katteeldon7 窗口 EU2026-03-14-11-07">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">katten-eldon7527@gmx.com</span><span class="when">11-16 23:16</span></div>
+      <div class="shopmeta">店铺 <b>katteeldon7</b><span class="sep">·</span>窗口 <b>EU2026-03-14-11-07</b></div>
+      <p class="summary">susanaefe 出价 €50（原价 €65）买 American Vintage 抓绒背心 S 码。<span class="key star">买家出价 €50 / €65</span></p>
+      <div class="meta">主题：New offer for American Vintage chaleco de forro polar, talla S</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="chancekfz.hyser@gmx.com New offer for Totême Bellac cropped faux-fur jacket drkezza 出价 £95（原价 £110）买 Totême 夹克 — 随后已成交。 买家出价 买家出价 £95 / £110 店铺 chanhys 窗口 20251205-01-15">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">chancekfz.hyser@gmx.com</span><span class="when">11-16 20:30</span></div>
+      <div class="shopmeta">店铺 <b>chanhys</b><span class="sep">·</span>窗口 <b>20251205-01-15</b></div>
+      <p class="summary">drkezza 出价 £95（原价 £110）买 Totême 夹克 — 随后已成交。<span class="key star">买家出价 £95 / £110</span></p>
+      <div class="meta">主题：New offer for Totême Bellac cropped faux-fur jacket</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="benj.pellot80hu@gmx.com New offer for With Jean white crochet skirt maisiemakepeace 出价 £55（原价 £75）买 With Jean 白色钩针裙。 买家出价 买家出价 £55 / £75 店铺 benjpem 窗口 20251125-15-51">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">benj.pellot80hu@gmx.com</span><span class="when">11-16 15:57</span></div>
+      <div class="shopmeta">店铺 <b>benjpem</b><span class="sep">·</span>窗口 <b>20251125-15-51</b></div>
+      <p class="summary">maisiemakepeace 出价 £55（原价 £75）买 With Jean 白色钩针裙。<span class="key star">买家出价 £55 / £75</span></p>
+      <div class="meta">主题：New offer for With Jean white crochet skirt</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="lescavage_kerena834@gmx.com New offer for DÔEN blusa blanca, talla S moonenergy 出价 €75（原价 €120）买 DÔEN 白衬衫 S 码。 买家出价 买家出价 €75 / €120 店铺 lescakeren 窗口 EU2026-03-14-11-22">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">lescavage_kerena834@gmx.com</span><span class="when">11-16 14:23</span></div>
+      <div class="shopmeta">店铺 <b>lescakeren</b><span class="sep">·</span>窗口 <b>EU2026-03-14-11-22</b></div>
+      <p class="summary">moonenergy 出价 €75（原价 €120）买 DÔEN 白衬衫 S 码。<span class="key star">买家出价 €75 / €120</span></p>
+      <div class="meta">主题：New offer for DÔEN blusa blanca, talla S</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="ruvendejsha@gmx.com New offer for Rick Owens Green Down Jacket with Integrated Scarf aurafauna 第二次出价 £100（原价 £160）买 Rick Owens 羽绒服（后该衣以 £120 售出）。 买家出价 买家出价 £100 / £160 店铺 ruvendejsok 窗口 20251008-16-46">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">ruvendejsha@gmx.com</span><span class="when">11-16 08:34</span></div>
+      <div class="shopmeta">店铺 <b>ruvendejsok</b><span class="sep">·</span>窗口 <b>20251008-16-46</b></div>
+      <p class="summary">aurafauna 第二次出价 £100（原价 £160）买 Rick Owens 羽绒服（后该衣以 £120 售出）。<span class="key star">买家出价 £100 / £160</span></p>
+      <div class="meta">主题：New offer for Rick Owens Green Down Jacket with Integrated Scarf</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="ruvendejsha@gmx.com New offer for Rick Owens Green Down Jacket with Integrated Scarf aurafauna 出价 £96（原价 £160）买 Rick Owens 羽绒服。 买家出价 买家出价 £96 / £160 店铺 ruvendejsok 窗口 20251008-16-46">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">ruvendejsha@gmx.com</span><span class="when">11-16 06:26</span></div>
+      <div class="shopmeta">店铺 <b>ruvendejsok</b><span class="sep">·</span>窗口 <b>20251008-16-46</b></div>
+      <p class="summary">aurafauna 出价 £96（原价 £160）买 Rick Owens 羽绒服。<span class="key star">买家出价 £96 / £160</span></p>
+      <div class="meta">主题：New offer for Rick Owens Green Down Jacket with Integrated Scarf</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="eeftinggonin@gmx.com New offer for The Row Front-Zip Platform Ankle Boots UK5 lili198221 出价 £175（原价 £289）买 The Row 平台靴。 买家出价 买家出价 £175 / £289 店铺 eeftinggo 窗口 20251013-15-10">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">eeftinggonin@gmx.com</span><span class="when">11-15 22:36</span></div>
+      <div class="shopmeta">店铺 <b>eeftinggo</b><span class="sep">·</span>窗口 <b>20251013-15-10</b></div>
+      <p class="summary">lili198221 出价 £175（原价 £289）买 The Row 平台靴。<span class="key star">买家出价 £175 / £289</span></p>
+      <div class="meta">主题：New offer for The Row Front-Zip Platform Ankle Boots UK5</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="benj.pellot80hu@gmx.com New offer for With Jean white crochet skirt edie20 出价 £45（原价 £75）买 With Jean 白色钩针裙。 买家出价 买家出价 £45 / £75 店铺 benjpem 窗口 20251125-15-51">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">benj.pellot80hu@gmx.com</span><span class="when">11-15 19:53</span></div>
+      <div class="shopmeta">店铺 <b>benjpem</b><span class="sep">·</span>窗口 <b>20251125-15-51</b></div>
+      <p class="summary">edie20 出价 £45（原价 £75）买 With Jean 白色钩针裙。<span class="key star">买家出价 £45 / £75</span></p>
+      <div class="meta">主题：New offer for With Jean white crochet skirt</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="moaksonbarkas@gmx.com New offer for Dôen Kaira Dress in Creme Pomegranate Bloom Size L thriftyed 出价 £51.16（原价 £115）买 Dôen Kaira 连衣裙。 买家出价 买家出价 £51.16 / £115 店铺 moaksonba 窗口 20250929-16-36">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">moaksonbarkas@gmx.com</span><span class="when">11-15 19:51</span></div>
+      <div class="shopmeta">店铺 <b>moaksonba</b><span class="sep">·</span>窗口 <b>20250929-16-36</b></div>
+      <p class="summary">thriftyed 出价 £51.16（原价 £115）买 Dôen Kaira 连衣裙。<span class="key star">买家出价 £51.16 / £115</span></p>
+      <div class="meta">主题：New offer for Dôen Kaira Dress in Creme Pomegranate Bloom Size L</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="chiuky-rago@gmx.com New offer for Sézane black sleeveless cotton dress in L size millaems 出价 £38（原价 £60）买 Sézane 连衣裙（该裙 11-16 已以 £50 售出）。 买家出价 买家出价 £38 / £60 店铺 chiurago 窗口 20260105-00-53">
+      <div class="card-top"><span class="tag kind">⭐ 买家出价</span><span class="acct">chiuky-rago@gmx.com</span><span class="when">11-15 17:47</span></div>
+      <div class="shopmeta">店铺 <b>chiurago</b><span class="sep">·</span>窗口 <b>20260105-00-53</b></div>
+      <p class="summary">millaems 出价 £38（原价 £60）买 Sézane 连衣裙（该裙 11-16 已以 £50 售出）。<span class="key star">买家出价 £38 / £60</span></p>
+      <div class="meta">主题：New offer for Sézane black sleeveless cotton dress in L size</div>
+    </article>
+
+
+    <h3 class="sub">买家消息 · 只标旗，正文在站内（12 条）</h3>
+
+
+    <article class="card star" data-level="star" data-levels="star" data-text="deborahmoran527@gmx.com New message about Acne Studios bufanda gris con flecos 买家 deeksha19 发来站内消息，问 Acne Studios 灰色流苏围巾；正文在 Vinted 站内。 买家消息 买家消息 店铺 deborahmo 窗口 EU20260420-01-12">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">deborahmoran527@gmx.com</span><span class="when">11-17 17:03</span></div>
+      <div class="shopmeta">店铺 <b>deborahmo</b><span class="sep">·</span>窗口 <b>EU20260420-01-12</b></div>
+      <p class="summary">买家 deeksha19 发来站内消息，问 Acne Studios 灰色流苏围巾；正文在 Vinted 站内。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about Acne Studios bufanda gris con flecos</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="hxuelili1222@163.com New message about Dries van Noten Asymmetric Zip Cardigan in Black 买家 tobysorabjee 发来站内消息，问 Dries van Noten 黑色不对称拉链开衫；正文在 Vinted 站内。 买家消息 买家消息 店铺 varietytone 窗口 GB260908-19">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">hxuelili1222@163.com</span><span class="when">11-17 16:25</span></div>
+      <div class="shopmeta">店铺 <b>varietytone</b><span class="sep">·</span>窗口 <b>GB260908-19</b></div>
+      <p class="summary">买家 tobysorabjee 发来站内消息，问 Dries van Noten 黑色不对称拉链开衫；正文在 Vinted 站内。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about Dries van Noten Asymmetric Zip Cardigan in Black</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="hxuelili1222@163.com New message about Le Creuset Disney Mickey Mouse &amp; Minnie Mouse Mini Dish 买家 meghillmanx28 发来站内消息，问这件 Le Creuset 迪士尼小碟；正文在 Vinted 站内。 买家消息 买家消息 店铺 colonsandar 窗口 GB250301-J-2">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">hxuelili1222@163.com</span><span class="when">11-17 14:55</span></div>
+      <div class="shopmeta">店铺 <b>colonsandar</b><span class="sep">·</span>窗口 <b>GB250301-J-2</b></div>
+      <p class="summary">买家 meghillmanx28 发来站内消息，问这件 Le Creuset 迪士尼小碟；正文在 Vinted 站内。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about Le Creuset Disney Mickey Mouse &amp; Minnie Mouse Mini Dish</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="lescavage_kerena834@gmx.com New message about DÔEN blusa blanca, talla S moonenergy 就 DÔEN 白衬衫 S 码发来买家消息（正文在站内，邮件只标旗）。 买家消息 买家消息 店铺 lescakeren 窗口 EU2026-03-14-11-22">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">lescavage_kerena834@gmx.com</span><span class="when">11-17 14:14</span></div>
+      <div class="shopmeta">店铺 <b>lescakeren</b><span class="sep">·</span>窗口 <b>EU2026-03-14-11-22</b></div>
+      <p class="summary">moonenergy 就 DÔEN 白衬衫 S 码发来买家消息（正文在站内，邮件只标旗）。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about DÔEN blusa blanca, talla S</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="eeftinggonin@gmx.com New message about The Row Front-Zip Platform Ankle Boots UK5 frances372 就 The Row 平台靴发来买家消息（正文在站内）。 买家消息 买家消息 店铺 eeftinggo 窗口 20251013-15-10">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">eeftinggonin@gmx.com</span><span class="when">11-17 13:56</span></div>
+      <div class="shopmeta">店铺 <b>eeftinggo</b><span class="sep">·</span>窗口 <b>20251013-15-10</b></div>
+      <p class="summary">frances372 就 The Row 平台靴发来买家消息（正文在站内）。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about The Row Front-Zip Platform Ankle Boots UK5</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="xzxteclz1214@icloud.com New message about DÔEN vestido midi de cuadros vichy rojos y blancos 买家 derind 发来站内消息（西班牙站），问 DÔEN 红白维希格纹连衣裙；正文在 Vinted 站内。 买家消息 买家消息 店铺 linearout 窗口 EU20260-05-18-12-30">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">xzxteclz1214@icloud.com</span><span class="when">11-17 13:37</span></div>
+      <div class="shopmeta">店铺 <b>linearout</b><span class="sep">·</span>窗口 <b>EU20260-05-18-12-30</b></div>
+      <p class="summary">买家 derind 发来站内消息（西班牙站），问 DÔEN 红白维希格纹连衣裙；正文在 Vinted 站内。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about DÔEN vestido midi de cuadros vichy rojos y blancos</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="katten-eldon7527@gmx.com New message about American Vintage chaleco de forro polar, talla S susanaefe 就 American Vintage 抓绒背心 S 码发来买家消息（正文在站内）。 买家消息 买家消息 店铺 katteeldon7 窗口 EU2026-03-14-11-07">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">katten-eldon7527@gmx.com</span><span class="when">11-17 13:15</span></div>
+      <div class="shopmeta">店铺 <b>katteeldon7</b><span class="sep">·</span>窗口 <b>EU2026-03-14-11-07</b></div>
+      <p class="summary">susanaefe 就 American Vintage 抓绒背心 S 码发来买家消息（正文在站内）。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about American Vintage chaleco de forro polar, talla S</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="hxuelili1222@163.com New message about Belstaff classic motorcycle jacket 买家 powellspud 发来站内消息，问 Belstaff 经典机车夹克；正文在 Vinted 站内。 买家消息 买家消息 店铺 dasimdapoute 窗口 GB250528-5">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">hxuelili1222@163.com</span><span class="when">11-17 13:14</span></div>
+      <div class="shopmeta">店铺 <b>dasimdapoute</b><span class="sep">·</span>窗口 <b>GB250528-5</b></div>
+      <p class="summary">买家 powellspud 发来站内消息，问 Belstaff 经典机车夹克；正文在 Vinted 站内。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about Belstaff classic motorcycle jacket</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="moaksonbarkas@gmx.com New message about Dôen Kaira Dress in Creme Pomegranate Bloom Size L map646 就 Dôen Kaira 连衣裙发来买家消息（正文在站内）。 买家消息 买家消息 店铺 moaksonba 窗口 20250929-16-36">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">moaksonbarkas@gmx.com</span><span class="when">11-16 15:42</span></div>
+      <div class="shopmeta">店铺 <b>moaksonba</b><span class="sep">·</span>窗口 <b>20250929-16-36</b></div>
+      <p class="summary">map646 就 Dôen Kaira 连衣裙发来买家消息（正文在站内）。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about Dôen Kaira Dress in Creme Pomegranate Bloom Size L</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="moaksonbarkas@gmx.com New message about Dôen Kaira Dress in Creme Pomegranate Bloom Size L lblisam 就 Dôen Kaira 连衣裙发来买家消息（正文在站内）。 买家消息 买家消息 店铺 moaksonba 窗口 20250929-16-36">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">moaksonbarkas@gmx.com</span><span class="when">11-16 15:10</span></div>
+      <div class="shopmeta">店铺 <b>moaksonba</b><span class="sep">·</span>窗口 <b>20250929-16-36</b></div>
+      <p class="summary">lblisam 就 Dôen Kaira 连衣裙发来买家消息（正文在站内）。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about Dôen Kaira Dress in Creme Pomegranate Bloom Size L</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="burgess-dennisc3099@gmx.com New message about JIL sander Hooded Down Jacket jennysmove 就 JIL Sander 羽绒服发来买家消息（正文在站内）。 买家消息 买家消息 店铺 burgessdennis 窗口 GB20260723-4">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">burgess-dennisc3099@gmx.com</span><span class="when">11-16 13:23</span></div>
+      <div class="shopmeta">店铺 <b>burgessdennis</b><span class="sep">·</span>窗口 <b>GB20260723-4</b></div>
+      <p class="summary">jennysmove 就 JIL Sander 羽绒服发来买家消息（正文在站内）。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about JIL sander Hooded Down Jacket</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="tonneshaquintonio@gmx.com New message about Kate Spade flamingo bucket bag amieeyuki 就 Kate Spade 水桶包发来买家消息（正文在站内）。 买家消息 买家消息 店铺 tonneshaquin 窗口 20251020-16-00">
+      <div class="card-top"><span class="tag kind">⭐ 买家消息</span><span class="acct">tonneshaquintonio@gmx.com</span><span class="when">11-16 10:00</span></div>
+      <div class="shopmeta">店铺 <b>tonneshaquin</b><span class="sep">·</span>窗口 <b>20251020-16-00</b></div>
+      <p class="summary">amieeyuki 就 Kate Spade 水桶包发来买家消息（正文在站内）。<span class="key star">买家消息</span></p>
+      <div class="meta">主题：New message about Kate Spade flamingo bucket bag</div>
+    </article>
+
+
+    <h3 class="sub">平台通知（3 条）</h3>
+
+
+    <article class="card star" data-level="star" data-levels="star" data-text="wy6532075@163.com You&#x27;ve got a new message 平台通知：商品验证失败的后续说明（Item failed verification – please read）。 平台通知 平台动作 店铺 vinton7 窗口 GB250723-2">
+      <div class="card-top"><span class="tag kind">⭐ 平台通知</span><span class="acct">wy6532075@163.com</span><span class="when">11-17 16:51</span></div>
+      <div class="shopmeta">店铺 <b>vinton7</b><span class="sep">·</span>窗口 <b>GB250723-2</b></div>
+      <p class="summary">平台通知：商品验证失败的后续说明（Item failed verification – please read）。<span class="key star">平台动作</span></p>
+      <div class="meta">主题：You've got a new message</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="wy6532075@163.com You&#x27;ve got a new message 平台通知：一个帖子因重复刊登（Duplicate listings）被 Vinted 删除。 平台通知 平台动作 店铺 vinton7 窗口 GB250723-2">
+      <div class="card-top"><span class="tag kind">⭐ 平台通知</span><span class="acct">wy6532075@163.com</span><span class="when">11-17 16:39</span></div>
+      <div class="shopmeta">店铺 <b>vinton7</b><span class="sep">·</span>窗口 <b>GB250723-2</b></div>
+      <p class="summary">平台通知：一个帖子因重复刊登（Duplicate listings）被 Vinted 删除。<span class="key star">平台动作</span></p>
+      <div class="meta">主题：You've got a new message</div>
+    </article>
+
+    <article class="card star" data-level="star" data-levels="star" data-text="aldenmcs.bissegger@gmx.com You&#x27;ve got a new message 平台通知：一个帖子因重复刊登（Duplicate listings）被 Vinted 删除。 平台通知 平台动作 店铺 aldenof 窗口 20251127-13-30">
+      <div class="card-top"><span class="tag kind">⭐ 平台通知</span><span class="acct">aldenmcs.bissegger@gmx.com</span><span class="when">11-17 04:39</span></div>
+      <div class="shopmeta">店铺 <b>aldenof</b><span class="sep">·</span>窗口 <b>20251127-13-30</b></div>
+      <p class="summary">平台通知：一个帖子因重复刊登（Duplicate listings）被 Vinted 删除。<span class="key star">平台动作</span></p>
+      <div class="meta">主题：You've got a new message</div>
+    </article>
+  </section>
+
+  <!-- ======= 💷 IBAN ======= -->
+  <section data-sec="iban">
+    <h2 class="sec">💷 IBAN 变更验证 <span class="cnt">48 小时内 0 个</span></h2>
+    <div class="empty">
+      <p>最近 48 小时内没有 IBAN 变更验证信。全队快照里有 102 个账号的历史最新邮件中出现过 IBAN 验证（见下方快照区），那是窗口外的历史状态，不在本页逐条展示。</p>
+    </div>
+  </section>
+
+  <!-- ======= 🟡 Security ======= -->
+  <section data-sec="yellow">
+    <h2 class="sec">🟡 安全 / 验证 <span class="cnt">4 条 · 48 小时内</span></h2>
+    <p class="sec-note">只列主题，不点链接、不输验证码。</p>
+    <div class="listbox">
+      <div class="row" data-level="yellow" data-levels="yellow" data-text="wy6532075@163.com Item failed verification 一件商品未通过平台验证（Item failed verification）。 验证失败 店铺 vinton7 窗口 GB250723-2"><span class="a">wy6532075@163.com</span><span class="s">Item failed verification — 一件商品未通过平台验证（Item failed verification）。</span><span class="n">验证失败</span><span class="shop">店铺 vinton7</span><span class="win">窗口 GB250723-2</span><span class="d">11-17 16:36</span></div>
+      <div class="row" data-level="yellow" data-levels="yellow" data-text="wy6532075@163.com Confirm your account data request 账号数据导出请求待确认（今天该号还有“正在准备你的数据”类邮件）。 数据请求 店铺 vinton7 窗口 GB250723-2"><span class="a">wy6532075@163.com</span><span class="s">Confirm your account data request — 账号数据导出请求待确认（今天该号还有“正在准备你的数据”类邮件）。</span><span class="n">数据请求</span><span class="shop">店铺 vinton7</span><span class="win">窗口 GB250723-2</span><span class="d">11-17 16:31</span></div>
+      <div class="row" data-level="yellow" data-levels="yellow" data-text="jacqueline_scene1975@gmx.com Confirm your email address / Verify your email address 今天新到两封 Vinted 邮箱验证邮件（14:24、14:25 UTC）；与 11-23 截止相关，日报只标不点，处理在 jacqueline 专属聊天定。 验证邮件 ×2 店铺 jacquelinescene1975 窗口 未找到 审计库未找到"><span class="a">jacqueline_scene1975@gmx.com</span><span class="s">Confirm your email address / Verify your email address — 今天新到两封 Vinted 邮箱验证邮件（14:24、14:25 UTC）；与 11-23 截止相关，日报只标不点，处理在 jacqueline 专属聊天定。</span><span class="n">验证邮件 ×2</span><span class="shop">店铺 jacquelinescene1975</span><span class="win">窗口 未找到</span><span class="d">11-17 14:24</span></div>
+      <div class="row" data-level="yellow" data-levels="yellow" data-text="burgess-dennisc3099@gmx.com Your identity verification was successful ✅ 身份验证已通过（11:20 收到确认身份邮件，11:42 显示成功）— 该号完成了实名流程。 身份验证成功 店铺 burgessdennis 窗口 GB20260723-4"><span class="a">burgess-dennisc3099@gmx.com</span><span class="s">Your identity verification was successful ✅ — 身份验证已通过（11:20 收到确认身份邮件，11:42 显示成功）— 该号完成了实名流程。</span><span class="n">身份验证成功</span><span class="shop">店铺 burgessdennis</span><span class="win">窗口 GB20260723-4</span><span class="d">11-16 11:42</span></div>
+    </div>
+  </section>
+
+  <!-- ======= ⚪ Counts only ======= -->
+  <section data-sec="white">
+    <h2 class="sec">⚪ 只计数，不逐条 <span class="cnt">38 封 · 48 小时内</span></h2>
+    <div class="counts-note">
+      <p>收藏互动（favourited）<b>32</b> 封，涉及 14 个账号；普通通知 <b>5</b> 封（LinkedIn 等非 Vinted 来信，4 个账号）；营销 <b>1</b> 封已过滤。按定版规则，这三类只报总数，不进日报版面。</p>
+    </div>
+  </section>
+
+  <!-- ======= 📭 Quiet + ❌ Failures ======= -->
+  <section data-sec="quiet">
+    <h2 class="sec">📭 48 小时内无新邮件 <span class="cnt">GMX 1,996 个</span></h2>
+    <div class="counts-note">
+      <p>其余 <b>1,996</b> 个 GMX 账号本轮均已正常检查、登录成功，只是最近 48 小时内没有新邮件，不逐个列出。4 个附加邮箱本期均已检查，其中 3 个有条目进入本期展示（见上方 ⭐ 区）。</p>
+    </div>
+  </section>
+
+  <section data-sec="fail">
+    <h2 class="sec">❌ 登录失败 <span class="cnt">0 条</span></h2>
+    <div class="okline"><span class="mark">✓</span><span>本轮 2,021 个邮箱全部 IMAP 登录成功（GMX 2,017 / 2,017 + 附加邮箱 4 / 4），无失败、无锁号。15 个非 GMX 邮箱已永久排除，不在此列。GMX 全量耗时约 18 分钟（15:01 – 15:19 UTC，5 路并发），附加邮箱数据截至 16:47 UTC、盘中快讯截至 18:23 UTC。</span></div>
+  </section>
+
+  <!-- ======= Fleet snapshot (NOT the 48h window) ======= -->
+  <section data-sec="fleet">
+    <h2 class="sec">全队快照 <span class="cnt">每箱最新 5 封 · 不是 48 小时窗口</span></h2>
+    <p class="sec-note">以下数字来自每个邮箱最新 5 封邮件的快照（共采样 7,663 封），反映的是历史状态，和上方 48 小时窗口的数字不要混着看。</p>
+    <div class="tiles" aria-label="全队快照（非窗口）">
+      <div class="tile"><b>7,663</b><span>采样邮件（每箱最新 5 封）</span></div>
+      <div class="tile red"><b>56</b><span>快照含 🔴 的账号</span></div>
+      <div class="tile amber"><b>102</b><span>快照含 IBAN 验证的账号</span></div>
+      <div class="tile"><b>305</b><span>快照含买家邮件的账号</span></div>
+      <div class="tile"><b>316</b><span>快照含订单邮件的账号</span></div>
+      <div class="tile green"><b>39</b><span>2026 年 11 月活跃账号</span></div>
+    </div>
+  </section>
+
+  <!-- ======= Full display list (48h only) ======= -->
+  <section data-sec="all">
+    <h2 class="sec">本期展示条目一览 <span class="cnt">51 条 · 仅 48 小时内 · 按日期折叠</span></h2>
+    <p class="sec-note">同样按日期分组：点日期条展开 / 收起，展开后在组内滚动查看，不用把整页拉长。</p>
+    <div class="listbox" id="allbox">
+      <div class="row" data-level="star" data-levels="star" data-text="wy6532075@163.com Order update for Dries van noten dark brown suede trainers 买家 alexsullivan87 已确认收货；款项将于 11-19 19:20 前自动到账（买家不报问题的话）。 订单提醒 待到账 店铺 店名未提炼 窗口 —"><span class="a">wy6532075@163.com</span><span class="s">Order update for Dries van noten dark brown suede trainers</span><span class="n">待到账</span><span class="shop">店铺 店名未提炼</span><span class="win">窗口 —</span><span class="d">⭐ 11-17 18:21</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="wy6532075@163.com New offer for Rick Owens Asymmetrical Placket Stand Collar Quilted Jacket 买家 hanswee 出价 £80.00（原价 £120.00）。 买家出价 £80.00 店铺 quamai36 窗口 GB250805-1"><span class="a">wy6532075@163.com</span><span class="s">New offer for Rick Owens Asymmetrical Placket Stand Collar Quilted Jacket</span><span class="n">£80.00</span><span class="shop">店铺 quamai36</span><span class="win">窗口 GB250805-1</span><span class="d">⭐ 11-17 18:20</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="deborahmoran527@gmx.com New message about Acne Studios bufanda gris con flecos 买家 deeksha19 发来站内消息，问 Acne Studios 灰色流苏围巾；正文在 Vinted 站内。 买家消息 买家消息 店铺 deborahmo 窗口 EU20260420-01-12"><span class="a">deborahmoran527@gmx.com</span><span class="s">New message about Acne Studios bufanda gris con flecos</span><span class="n">买家消息</span><span class="shop">店铺 deborahmo</span><span class="win">窗口 EU20260420-01-12</span><span class="d">⭐ 11-17 17:03</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="xzxteclz1214@icloud.com New offer for Makita battery 6ah 18v new 买家 roversno1fan 出价 £20.00（原价 £32.20）。 买家出价 £20.00 店铺 chumsquenc 窗口 20260519-01-46"><span class="a">xzxteclz1214@icloud.com</span><span class="s">New offer for Makita battery 6ah 18v new</span><span class="n">£20.00</span><span class="shop">店铺 chumsquenc</span><span class="win">窗口 20260519-01-46</span><span class="d">⭐ 11-17 16:51</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="wy6532075@163.com You&#x27;ve got a new message 平台通知：商品验证失败的后续说明（Item failed verification – please read）。 平台通知 平台动作 店铺 vinton7 窗口 GB250723-2"><span class="a">wy6532075@163.com</span><span class="s">You've got a new message</span><span class="n">平台动作</span><span class="shop">店铺 vinton7</span><span class="win">窗口 GB250723-2</span><span class="d">⭐ 11-17 16:51</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="wy6532075@163.com Your payment is being sent to your bank £28.00 提现已发起，正在从 Vinted 余额打往银行账户，预计 11-24 到账。 订单提醒 £28.00 店铺 teriaennm498 窗口 GB250821-C-18"><span class="a">wy6532075@163.com</span><span class="s">Your payment is being sent to your bank</span><span class="n">£28.00</span><span class="shop">店铺 teriaennm498</span><span class="win">窗口 GB250821-C-18</span><span class="d">⭐ 11-17 16:45</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="wy6532075@163.com You&#x27;ve got a new message 平台通知：一个帖子因重复刊登（Duplicate listings）被 Vinted 删除。 平台通知 平台动作 店铺 vinton7 窗口 GB250723-2"><span class="a">wy6532075@163.com</span><span class="s">You've got a new message</span><span class="n">平台动作</span><span class="shop">店铺 vinton7</span><span class="win">窗口 GB250723-2</span><span class="d">⭐ 11-17 16:39</span></div>
+      <div class="row" data-level="yellow" data-levels="yellow" data-text="wy6532075@163.com Item failed verification 一件商品未通过平台验证（Item failed verification）。 验证失败 店铺 vinton7 窗口 GB250723-2"><span class="a">wy6532075@163.com</span><span class="s">Item failed verification</span><span class="n">验证失败</span><span class="shop">店铺 vinton7</span><span class="win">窗口 GB250723-2</span><span class="d">🟡 11-17 16:36</span></div>
+      <div class="row" data-level="yellow" data-levels="yellow" data-text="wy6532075@163.com Confirm your account data request 账号数据导出请求待确认（今天该号还有“正在准备你的数据”类邮件）。 数据请求 店铺 vinton7 窗口 GB250723-2"><span class="a">wy6532075@163.com</span><span class="s">Confirm your account data request</span><span class="n">数据请求</span><span class="shop">店铺 vinton7</span><span class="win">窗口 GB250723-2</span><span class="d">🟡 11-17 16:31</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="hxuelili1222@163.com New message about Dries van Noten Asymmetric Zip Cardigan in Black 买家 tobysorabjee 发来站内消息，问 Dries van Noten 黑色不对称拉链开衫；正文在 Vinted 站内。 买家消息 买家消息 店铺 varietytone 窗口 GB260908-19"><span class="a">hxuelili1222@163.com</span><span class="s">New message about Dries van Noten Asymmetric Zip Cardigan in Black</span><span class="n">买家消息</span><span class="shop">店铺 varietytone</span><span class="win">窗口 GB260908-19</span><span class="d">⭐ 11-17 16:25</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="wy6532075@163.com Your payment is being sent to your bank £70.00 提现已发起，正在从 Vinted 余额打往银行账户。 订单提醒 £70.00 店铺 vinton7 窗口 GB250723-2"><span class="a">wy6532075@163.com</span><span class="s">Your payment is being sent to your bank</span><span class="n">£70.00</span><span class="shop">店铺 vinton7</span><span class="win">窗口 GB250723-2</span><span class="d">⭐ 11-17 16:00</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="wy6532075@163.com Order update for Kate Spade Gold Bracelet with Strawberry Charm 买家 kimsutt 已确认收货；款项将于 11-19 16:29 前自动到账（买家不报问题的话）。 订单提醒 待到账 店铺 vinton7 窗口 GB250723-2"><span class="a">wy6532075@163.com</span><span class="s">Order update for Kate Spade Gold Bracelet with Strawberry Charm</span><span class="n">待到账</span><span class="shop">店铺 vinton7</span><span class="win">窗口 GB250723-2</span><span class="d">⭐ 11-17 15:37</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="hxuelili1222@163.com New offer for Le Creuset Disney Mickey Mouse &amp; Minnie Mouse Mini Dish 买家 meghillmanx28 出价 £35.00（原价 £50.00）。 买家出价 £35.00 店铺 colonsandar 窗口 GB250301-J-2"><span class="a">hxuelili1222@163.com</span><span class="s">New offer for Le Creuset Disney Mickey Mouse &amp; Minnie Mouse Mini Dish</span><span class="n">£35.00</span><span class="shop">店铺 colonsandar</span><span class="win">窗口 GB250301-J-2</span><span class="d">⭐ 11-17 14:58</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="hxuelili1222@163.com New message about Le Creuset Disney Mickey Mouse &amp; Minnie Mouse Mini Dish 买家 meghillmanx28 发来站内消息，问这件 Le Creuset 迪士尼小碟；正文在 Vinted 站内。 买家消息 买家消息 店铺 colonsandar 窗口 GB250301-J-2"><span class="a">hxuelili1222@163.com</span><span class="s">New message about Le Creuset Disney Mickey Mouse &amp; Minnie Mouse Mini Dish</span><span class="n">买家消息</span><span class="shop">店铺 colonsandar</span><span class="win">窗口 GB250301-J-2</span><span class="d">⭐ 11-17 14:55</span></div>
+      <div class="row" data-level="yellow" data-levels="yellow" data-text="jacqueline_scene1975@gmx.com Confirm your email address / Verify your email address 今天新到两封 Vinted 邮箱验证邮件（14:24、14:25 UTC）；与 11-23 截止相关，日报只标不点，处理在 jacqueline 专属聊天定。 验证邮件 ×2 店铺 jacquelinescene1975 窗口 未找到 审计库未找到"><span class="a">jacqueline_scene1975@gmx.com</span><span class="s">Confirm your email address / Verify your email address</span><span class="n">验证邮件 ×2</span><span class="shop">店铺 jacquelinescene1975</span><span class="win">窗口 未找到</span><span class="d">🟡 11-17 14:24</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="lescavage_kerena834@gmx.com New message about DÔEN blusa blanca, talla S moonenergy 就 DÔEN 白衬衫 S 码发来买家消息（正文在站内，邮件只标旗）。 买家消息 买家消息 店铺 lescakeren 窗口 EU2026-03-14-11-22"><span class="a">lescavage_kerena834@gmx.com</span><span class="s">New message about DÔEN blusa blanca, talla S</span><span class="n">买家消息</span><span class="shop">店铺 lescakeren</span><span class="win">窗口 EU2026-03-14-11-22</span><span class="d">⭐ 11-17 14:14</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="eeftinggonin@gmx.com You&#x27;ve sold an item on Vinted! (with Item Verification) frances372 买下 The Row 平台靴 UK5（带商品验证）；验证通过、买家确认后付款进余额。 售出 今日售出 店铺 eeftinggo 窗口 20251013-15-10"><span class="a">eeftinggonin@gmx.com</span><span class="s">You've sold an item on Vinted! (with Item Verification)</span><span class="n">今日售出</span><span class="shop">店铺 eeftinggo</span><span class="win">窗口 20251013-15-10</span><span class="d">⭐ 11-17 14:08</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="eeftinggonin@gmx.com New message about The Row Front-Zip Platform Ankle Boots UK5 frances372 就 The Row 平台靴发来买家消息（正文在站内）。 买家消息 买家消息 店铺 eeftinggo 窗口 20251013-15-10"><span class="a">eeftinggonin@gmx.com</span><span class="s">New message about The Row Front-Zip Platform Ankle Boots UK5</span><span class="n">买家消息</span><span class="shop">店铺 eeftinggo</span><span class="win">窗口 20251013-15-10</span><span class="d">⭐ 11-17 13:56</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="hxuelili1222@163.com New offer for SH figuarts demoniacal fit vegito 买家 rachhd94 出价 £57.00（原价 £70.00）。 买家出价 £57.00 店铺 gusreagoser 窗口 GB250526-8"><span class="a">hxuelili1222@163.com</span><span class="s">New offer for SH figuarts demoniacal fit vegito</span><span class="n">£57.00</span><span class="shop">店铺 gusreagoser</span><span class="win">窗口 GB250526-8</span><span class="d">⭐ 11-17 13:51</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="carol-marquezaecr@gmx.com New offer for Carol Christian Poell Tooth Necklace Pendant ninjja65 出价 £50（原价 £80）买 Carol Christian Poell 牙齿项链。 买家出价 买家出价 £50 / £80 店铺 dawnm555 窗口 260827-1"><span class="a">carol-marquezaecr@gmx.com</span><span class="s">New offer for Carol Christian Poell Tooth Necklace Pendant</span><span class="n">买家出价 £50 / £80</span><span class="shop">店铺 dawnm555</span><span class="win">窗口 260827-1</span><span class="d">⭐ 11-17 13:38</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="xzxteclz1214@icloud.com New message about DÔEN vestido midi de cuadros vichy rojos y blancos 买家 derind 发来站内消息（西班牙站），问 DÔEN 红白维希格纹连衣裙；正文在 Vinted 站内。 买家消息 买家消息 店铺 linearout 窗口 EU20260-05-18-12-30"><span class="a">xzxteclz1214@icloud.com</span><span class="s">New message about DÔEN vestido midi de cuadros vichy rojos y blancos</span><span class="n">买家消息</span><span class="shop">店铺 linearout</span><span class="win">窗口 EU20260-05-18-12-30</span><span class="d">⭐ 11-17 13:37</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="katten-eldon7527@gmx.com New message about American Vintage chaleco de forro polar, talla S susanaefe 就 American Vintage 抓绒背心 S 码发来买家消息（正文在站内）。 买家消息 买家消息 店铺 katteeldon7 窗口 EU2026-03-14-11-07"><span class="a">katten-eldon7527@gmx.com</span><span class="s">New message about American Vintage chaleco de forro polar, talla S</span><span class="n">买家消息</span><span class="shop">店铺 katteeldon7</span><span class="win">窗口 EU2026-03-14-11-07</span><span class="d">⭐ 11-17 13:15</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="hxuelili1222@163.com New message about Belstaff classic motorcycle jacket 买家 powellspud 发来站内消息，问 Belstaff 经典机车夹克；正文在 Vinted 站内。 买家消息 买家消息 店铺 dasimdapoute 窗口 GB250528-5"><span class="a">hxuelili1222@163.com</span><span class="s">New message about Belstaff classic motorcycle jacket</span><span class="n">买家消息</span><span class="shop">店铺 dasimdapoute</span><span class="win">窗口 GB250528-5</span><span class="d">⭐ 11-17 13:14</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="xzxteclz1214@icloud.com Your buyer wants to cancel a transaction 买家 ericabugos1985 申请取消 Sézane Lucie 夹克（S 码）：明天去度假、来不及收货；可在对话页接受或拒绝。 订单提醒 取消申请 店铺 linearout 窗口 EU20260-05-18-12-30"><span class="a">xzxteclz1214@icloud.com</span><span class="s">Your buyer wants to cancel a transaction</span><span class="n">取消申请</span><span class="shop">店铺 linearout</span><span class="win">窗口 EU20260-05-18-12-30</span><span class="d">⭐ 11-17 11:29</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="xzxteclz1214@icloud.com Order update for Sézane Adeline Knit Cardigan 催发货：尽快把包裹送到 Royal Mail 投递点，否则订单将被取消。 订单提醒 催发货 店铺 linearout 窗口 EU20260-05-18-12-30"><span class="a">xzxteclz1214@icloud.com</span><span class="s">Order update for Sézane Adeline Knit Cardigan</span><span class="n">催发货</span><span class="shop">店铺 linearout</span><span class="win">窗口 EU20260-05-18-12-30</span><span class="d">⭐ 11-17 10:41</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="xzxteclz1214@icloud.com Order update for Danielle Guizio Black Midi Skirt in XS 催发货：买家在等，把包裹送到最近的 Royal Mail 投递点。 订单提醒 催发货 店铺 linearout 窗口 EU20260-05-18-12-30"><span class="a">xzxteclz1214@icloud.com</span><span class="s">Order update for Danielle Guizio Black Midi Skirt in XS</span><span class="n">催发货</span><span class="shop">店铺 linearout</span><span class="win">窗口 EU20260-05-18-12-30</span><span class="d">⭐ 11-17 10:41</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="burgess-dennisc3099@gmx.com Order update for JIL sander Hooded Down Jacket 订单提醒：JIL Sander 羽绒服该发货了，买家在等。 订单提醒 待发货提醒 店铺 burgessdennis 窗口 GB20260723-4"><span class="a">burgess-dennisc3099@gmx.com</span><span class="s">Order update for JIL sander Hooded Down Jacket</span><span class="n">待发货提醒</span><span class="shop">店铺 burgessdennis</span><span class="win">窗口 GB20260723-4</span><span class="d">⭐ 11-17 10:23</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="chancekfz.hyser@gmx.com Totême Bellac cropped faux-fur jacket shipping label – use by 24/11/2026 09:00 发货面单已出（跟踪号 VU982159073GB），须在 11-24 09:00 前寄出。 发货面单 ⏰ 面单截止 11-24 09:00 店铺 chanhys 窗口 20251205-01-15"><span class="a">chancekfz.hyser@gmx.com</span><span class="s">Totême Bellac cropped faux-fur jacket shipping label – use by 24/11/2026 09:00</span><span class="n">⏰ 面单截止 11-24 09:00</span><span class="shop">店铺 chanhys</span><span class="win">窗口 20251205-01-15</span><span class="d">⭐ 11-17 07:39</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="chancekfz.hyser@gmx.com You&#x27;ve sold an item on Vinted drkezza 买下 Totême 短款仿皮草夹克，£95；需 5 天内发货。 售出 £95 · 待发货 店铺 chanhys 窗口 20251205-01-15"><span class="a">chancekfz.hyser@gmx.com</span><span class="s">You've sold an item on Vinted</span><span class="n">£95 · 待发货</span><span class="shop">店铺 chanhys</span><span class="win">窗口 20251205-01-15</span><span class="d">⭐ 11-17 06:34</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="aldenmcs.bissegger@gmx.com You&#x27;ve got a new message 平台通知：一个帖子因重复刊登（Duplicate listings）被 Vinted 删除。 平台通知 平台动作 店铺 aldenof 窗口 20251127-13-30"><span class="a">aldenmcs.bissegger@gmx.com</span><span class="s">You've got a new message</span><span class="n">平台动作</span><span class="shop">店铺 aldenof</span><span class="win">窗口 20251127-13-30</span><span class="d">⭐ 11-17 04:39</span></div>
+      <div class="row" data-level="red" data-levels="red" data-text="jacqueline_scene1975@gmx.com Verify your email to keep your account active Vinted 催验证：11-23 前不验证邮箱，账号将被停用，30 天后永久删除。 ⏰ 截止 11-23 店铺 jacquelinescene1975 窗口 未找到 审计库未找到"><span class="a">jacqueline_scene1975@gmx.com</span><span class="s">Verify your email to keep your account active</span><span class="n">⏰ 截止 11-23</span><span class="shop">店铺 jacquelinescene1975</span><span class="win">窗口 未找到</span><span class="d">🔴 11-17 03:00</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="chiuky-rago@gmx.com Sézane black sleeveless cotton dress shipping label – use by 23/11/2026 发货面单已出（跟踪号 VU981721844GB），须在 11-23 10:56 前寄出。 发货面单 ⏰ 面单截止 11-23 店铺 chiurago 窗口 20260105-00-53"><span class="a">chiuky-rago@gmx.com</span><span class="s">Sézane black sleeveless cotton dress shipping label – use by 23/11/2026</span><span class="n">⏰ 面单截止 11-23</span><span class="shop">店铺 chiurago</span><span class="win">窗口 20260105-00-53</span><span class="d">⭐ 11-17 00:40</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="katten-eldon7527@gmx.com New offer for American Vintage chaleco de forro polar, talla S susanaefe 出价 €50（原价 €65）买 American Vintage 抓绒背心 S 码。 买家出价 买家出价 €50 / €65 店铺 katteeldon7 窗口 EU2026-03-14-11-07"><span class="a">katten-eldon7527@gmx.com</span><span class="s">New offer for American Vintage chaleco de forro polar, talla S</span><span class="n">买家出价 €50 / €65</span><span class="shop">店铺 katteeldon7</span><span class="win">窗口 EU2026-03-14-11-07</span><span class="d">⭐ 11-16 23:16</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="chancekfz.hyser@gmx.com New offer for Totême Bellac cropped faux-fur jacket drkezza 出价 £95（原价 £110）买 Totême 夹克 — 随后已成交。 买家出价 买家出价 £95 / £110 店铺 chanhys 窗口 20251205-01-15"><span class="a">chancekfz.hyser@gmx.com</span><span class="s">New offer for Totême Bellac cropped faux-fur jacket</span><span class="n">买家出价 £95 / £110</span><span class="shop">店铺 chanhys</span><span class="win">窗口 20251205-01-15</span><span class="d">⭐ 11-16 20:30</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="benj.pellot80hu@gmx.com New offer for With Jean white crochet skirt maisiemakepeace 出价 £55（原价 £75）买 With Jean 白色钩针裙。 买家出价 买家出价 £55 / £75 店铺 benjpem 窗口 20251125-15-51"><span class="a">benj.pellot80hu@gmx.com</span><span class="s">New offer for With Jean white crochet skirt</span><span class="n">买家出价 £55 / £75</span><span class="shop">店铺 benjpem</span><span class="win">窗口 20251125-15-51</span><span class="d">⭐ 11-16 15:57</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="moaksonbarkas@gmx.com New message about Dôen Kaira Dress in Creme Pomegranate Bloom Size L map646 就 Dôen Kaira 连衣裙发来买家消息（正文在站内）。 买家消息 买家消息 店铺 moaksonba 窗口 20250929-16-36"><span class="a">moaksonbarkas@gmx.com</span><span class="s">New message about Dôen Kaira Dress in Creme Pomegranate Bloom Size L</span><span class="n">买家消息</span><span class="shop">店铺 moaksonba</span><span class="win">窗口 20250929-16-36</span><span class="d">⭐ 11-16 15:42</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="moaksonbarkas@gmx.com New message about Dôen Kaira Dress in Creme Pomegranate Bloom Size L lblisam 就 Dôen Kaira 连衣裙发来买家消息（正文在站内）。 买家消息 买家消息 店铺 moaksonba 窗口 20250929-16-36"><span class="a">moaksonbarkas@gmx.com</span><span class="s">New message about Dôen Kaira Dress in Creme Pomegranate Bloom Size L</span><span class="n">买家消息</span><span class="shop">店铺 moaksonba</span><span class="win">窗口 20250929-16-36</span><span class="d">⭐ 11-16 15:10</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="lescavage_kerena834@gmx.com New offer for DÔEN blusa blanca, talla S moonenergy 出价 €75（原价 €120）买 DÔEN 白衬衫 S 码。 买家出价 买家出价 €75 / €120 店铺 lescakeren 窗口 EU2026-03-14-11-22"><span class="a">lescavage_kerena834@gmx.com</span><span class="s">New offer for DÔEN blusa blanca, talla S</span><span class="n">买家出价 €75 / €120</span><span class="shop">店铺 lescakeren</span><span class="win">窗口 EU2026-03-14-11-22</span><span class="d">⭐ 11-16 14:23</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="burgess-dennisc3099@gmx.com New message about JIL sander Hooded Down Jacket jennysmove 就 JIL Sander 羽绒服发来买家消息（正文在站内）。 买家消息 买家消息 店铺 burgessdennis 窗口 GB20260723-4"><span class="a">burgess-dennisc3099@gmx.com</span><span class="s">New message about JIL sander Hooded Down Jacket</span><span class="n">买家消息</span><span class="shop">店铺 burgessdennis</span><span class="win">窗口 GB20260723-4</span><span class="d">⭐ 11-16 13:23</span></div>
+      <div class="row" data-level="yellow" data-levels="yellow" data-text="burgess-dennisc3099@gmx.com Your identity verification was successful ✅ 身份验证已通过（11:20 收到确认身份邮件，11:42 显示成功）— 该号完成了实名流程。 身份验证成功 店铺 burgessdennis 窗口 GB20260723-4"><span class="a">burgess-dennisc3099@gmx.com</span><span class="s">Your identity verification was successful ✅</span><span class="n">身份验证成功</span><span class="shop">店铺 burgessdennis</span><span class="win">窗口 GB20260723-4</span><span class="d">🟡 11-16 11:42</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="ruvendejsha@gmx.com Rick Owens Green Down Jacket shipping label – use by 23/11/2026 发货面单已出（跟踪号 TN108377348GB），须在 11-23 10:56 前寄出。 发货面单 ⏰ 面单截止 11-23 店铺 ruvendejsok 窗口 20251008-16-46"><span class="a">ruvendejsha@gmx.com</span><span class="s">Rick Owens Green Down Jacket shipping label – use by 23/11/2026</span><span class="n">⏰ 面单截止 11-23</span><span class="shop">店铺 ruvendejsok</span><span class="win">窗口 20251008-16-46</span><span class="d">⭐ 11-16 11:27</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="chiuky-rago@gmx.com You&#x27;ve sold an item on Vinted astonsmith 买下 Sézane 黑色无袖连衣裙 L 码，£50；需 5 天内发货。 售出 £50 · 待发货 店铺 chiurago 窗口 20260105-00-53"><span class="a">chiuky-rago@gmx.com</span><span class="s">You've sold an item on Vinted</span><span class="n">£50 · 待发货</span><span class="shop">店铺 chiurago</span><span class="win">窗口 20260105-00-53</span><span class="d">⭐ 11-16 10:56</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="ruvendejsha@gmx.com You&#x27;ve sold an item on Vinted enochblakely123 买下 Rick Owens 绿色羽绒服（带围巾），£120；需 5 天内发货。 售出 £120 · 待发货 店铺 ruvendejsok 窗口 20251008-16-46"><span class="a">ruvendejsha@gmx.com</span><span class="s">You've sold an item on Vinted</span><span class="n">£120 · 待发货</span><span class="shop">店铺 ruvendejsok</span><span class="win">窗口 20251008-16-46</span><span class="d">⭐ 11-16 10:56</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="burgess-dennisc3099@gmx.com JIL sander Hooded Down Jacket shipping label – use by 20/11/2026 09:37 发货面单已出（跟踪号 TN108371795GB），须在 11-20 09:37 前寄出。 发货面单 ⏰ 面单截止 11-20 店铺 burgessdennis 窗口 GB20260723-4"><span class="a">burgess-dennisc3099@gmx.com</span><span class="s">JIL sander Hooded Down Jacket shipping label – use by 20/11/2026 09:37</span><span class="n">⏰ 面单截止 11-20</span><span class="shop">店铺 burgessdennis</span><span class="win">窗口 GB20260723-4</span><span class="d">⭐ 11-16 10:39</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="tonneshaquintonio@gmx.com New message about Kate Spade flamingo bucket bag amieeyuki 就 Kate Spade 水桶包发来买家消息（正文在站内）。 买家消息 买家消息 店铺 tonneshaquin 窗口 20251020-16-00"><span class="a">tonneshaquintonio@gmx.com</span><span class="s">New message about Kate Spade flamingo bucket bag</span><span class="n">买家消息</span><span class="shop">店铺 tonneshaquin</span><span class="win">窗口 20251020-16-00</span><span class="d">⭐ 11-16 10:00</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="ruvendejsha@gmx.com New offer for Rick Owens Green Down Jacket with Integrated Scarf aurafauna 第二次出价 £100（原价 £160）买 Rick Owens 羽绒服（后该衣以 £120 售出）。 买家出价 买家出价 £100 / £160 店铺 ruvendejsok 窗口 20251008-16-46"><span class="a">ruvendejsha@gmx.com</span><span class="s">New offer for Rick Owens Green Down Jacket with Integrated Scarf</span><span class="n">买家出价 £100 / £160</span><span class="shop">店铺 ruvendejsok</span><span class="win">窗口 20251008-16-46</span><span class="d">⭐ 11-16 08:34</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="ruvendejsha@gmx.com New offer for Rick Owens Green Down Jacket with Integrated Scarf aurafauna 出价 £96（原价 £160）买 Rick Owens 羽绒服。 买家出价 买家出价 £96 / £160 店铺 ruvendejsok 窗口 20251008-16-46"><span class="a">ruvendejsha@gmx.com</span><span class="s">New offer for Rick Owens Green Down Jacket with Integrated Scarf</span><span class="n">买家出价 £96 / £160</span><span class="shop">店铺 ruvendejsok</span><span class="win">窗口 20251008-16-46</span><span class="d">⭐ 11-16 06:26</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="eeftinggonin@gmx.com New offer for The Row Front-Zip Platform Ankle Boots UK5 lili198221 出价 £175（原价 £289）买 The Row 平台靴。 买家出价 买家出价 £175 / £289 店铺 eeftinggo 窗口 20251013-15-10"><span class="a">eeftinggonin@gmx.com</span><span class="s">New offer for The Row Front-Zip Platform Ankle Boots UK5</span><span class="n">买家出价 £175 / £289</span><span class="shop">店铺 eeftinggo</span><span class="win">窗口 20251013-15-10</span><span class="d">⭐ 11-15 22:36</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="benj.pellot80hu@gmx.com New offer for With Jean white crochet skirt edie20 出价 £45（原价 £75）买 With Jean 白色钩针裙。 买家出价 买家出价 £45 / £75 店铺 benjpem 窗口 20251125-15-51"><span class="a">benj.pellot80hu@gmx.com</span><span class="s">New offer for With Jean white crochet skirt</span><span class="n">买家出价 £45 / £75</span><span class="shop">店铺 benjpem</span><span class="win">窗口 20251125-15-51</span><span class="d">⭐ 11-15 19:53</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="moaksonbarkas@gmx.com New offer for Dôen Kaira Dress in Creme Pomegranate Bloom Size L thriftyed 出价 £51.16（原价 £115）买 Dôen Kaira 连衣裙。 买家出价 买家出价 £51.16 / £115 店铺 moaksonba 窗口 20250929-16-36"><span class="a">moaksonbarkas@gmx.com</span><span class="s">New offer for Dôen Kaira Dress in Creme Pomegranate Bloom Size L</span><span class="n">买家出价 £51.16 / £115</span><span class="shop">店铺 moaksonba</span><span class="win">窗口 20250929-16-36</span><span class="d">⭐ 11-15 19:51</span></div>
+      <div class="row" data-level="star" data-levels="star" data-text="chiuky-rago@gmx.com New offer for Sézane black sleeveless cotton dress in L size millaems 出价 £38（原价 £60）买 Sézane 连衣裙（该裙 11-16 已以 £50 售出）。 买家出价 买家出价 £38 / £60 店铺 chiurago 窗口 20260105-00-53"><span class="a">chiuky-rago@gmx.com</span><span class="s">New offer for Sézane black sleeveless cotton dress in L size</span><span class="n">买家出价 £38 / £60</span><span class="shop">店铺 chiurago</span><span class="win">窗口 20260105-00-53</span><span class="d">⭐ 11-15 17:47</span></div>
+    </div>
+  </section>
+
+  <!-- ======= How the fixed page updates ======= -->
+  <div class="panel">
+    <h2>这个固定网址怎么用</h2>
+    <div class="steps">
+      <div class="step"><b>① 地址不变</b><span>把本页存成书签，每天打开同一个网址即可，不用再等聊天里发文件。</span></div>
+      <div class="step"><b>② 每天更新同一页</b><span>每次跑完检查，最新一期日报会替换到这个页面上；聊天里只发约 10 行的精简摘要并链回这里。</span></div>
+      <div class="step"><b>③ 只看最近 48 小时</b><span>本页只展示最近 48 小时内的邮件，超过 48 小时的旧邮件不再展示（数据仍在结果文件中存档）。本期口径：GMX 全量截至 11-17 15:19、附加邮箱截至 11-17 16:47、盘中快讯截至 11-17 18:23（UTC）。</span></div>
+    </div>
+    <p class="note"><b>如实说明：</b>本页是固定网址的静态快照，本身不会自动连邮箱抓信 — 每次更新由日报任务跑完 IMAP 检查后重新发布到这个地址。本期为全量 + 附加邮箱合并期：2,017 个 GMX 邮箱 + 4 个附加邮箱（3×163 + 1×iCloud），共 2,021 个；15 个非 GMX 邮箱已按你的决定永久排除。</p>
+    <div class="actions">
+      <button class="btn primary" id="copyBtn" type="button">复制聊天精简版</button>
+      <button class="btn" id="csvBtn" type="button">下载本期 CSV</button>
+      <span class="toast" id="toast">已复制 ✓</span>
+    </div>
+  </div>
+
+  <p class="foot">
+    分类口径（2026-11-17 定稿 v3）＋ 48 小时展示规则 ＋ 只读邮件口径：本页只展示邮件日期在最近 48 小时内的条目；买家出价读正文给全内容，买家私信只标旗（正文不在邮件里，不登录 Vinted），模糊主题抓正文再定性；收藏互动与营销只计数、不进日报。<br>
+    数据来源：2026-11-17 GMX IMAP 全量实测（2,017 个 GMX 邮箱，2,017/2,017 登录成功；每箱最新 5 封共采样 7,663 封）+ 4 个附加邮箱（3×163 + 1×iCloud，4/4 登录成功，数据截至 2026-11-17 16:47 UTC）+ 盘中自适应轮询快讯（截至 18:23 UTC）。本页展示最近 48 小时内 51 条（🔴 1 · ⭐ 46 · 🟡 4）。15 个非 GMX 邮箱（inbox.lv 7 · gazeta.pl 4 · onet.pl 3 · 格式错误 1）已永久排除。
+  </p>
+</div>
+
+<script>
+(function(){
+  /* ===== 给条目打上类型（data-kind），供「按类型」筛选与组内分类排序 ===== */
+  function kindFromText(t){
+    t = t || '';
+    if (t.indexOf('发货面单') !== -1 || t.indexOf('面单') !== -1) return 'label';
+    if (t.indexOf('订单提醒') !== -1) return 'reminder';
+    if (t.indexOf('买家出价') !== -1 || t.indexOf('出价') !== -1) return 'offer';
+    if (t.indexOf('买家消息') !== -1) return 'message';
+    if (t.indexOf('平台通知') !== -1) return 'platform';
+    if (t.indexOf('售出') !== -1) return 'sold';
+    if (t.indexOf('验证') !== -1) return 'verify';
+    if (t.indexOf('截止') !== -1) return 'deadline';
+    return '';
+  }
+  document.querySelectorAll('article.card').forEach(function(el){
+    var tag = el.querySelector('.tag.kind') || el.querySelector('.tag.redtag');
+    var k = kindFromText(tag ? tag.textContent : '');
+    if (k) el.setAttribute('data-kind', k);
+  });
+  document.querySelectorAll('.row[data-level]').forEach(function(el){
+    var n = el.querySelector('.n');
+    var k = kindFromText(n ? n.textContent : '') || kindFromText(el.getAttribute('data-text'));
+    if (k) el.setAttribute('data-kind', k);
+  });
+
+  /* ===== 按日期折叠 + 组内滚动 ===== */
+  function dateLabel(key){
+    if(key==='11-17') return '11月17日 · 今天';
+    if(key==='11-16') return '11月16日 · 昨天';
+    if(key==='11-15') return '11月15日';
+    var p=key.split('-'); return (p[0]?parseInt(p[0],10):'')+'月'+(p[1]?parseInt(p[1],10):'')+'日';
+  }
+  function makeDateGroup(key,count,isList, collapsed){
+    var g=document.createElement('div'); g.className='date-group'+(collapsed?' is-collapsed':''); g.setAttribute('data-date-group',key);
+    var head=document.createElement('button'); head.type='button'; head.className='date-head'; head.setAttribute('aria-expanded', collapsed?'false':'true');
+    head.innerHTML='<strong>'+dateLabel(key)+'</strong><span class="dmeta">'+count+' 条</span><span class="scroll-tag">组内可滚动 ↕</span><span class="chev" aria-hidden="true">⌄</span>';
+    head.addEventListener('click',function(){
+      var c=g.classList.toggle('is-collapsed');
+      head.setAttribute('aria-expanded', c?'false':'true');
+    });
+    var body=document.createElement('div'); body.className='date-body'+(isList?' list':'');
+    g.appendChild(head); g.appendChild(body);
+    return {group:g, body:body, head:head};
+  }
+  function groupByDate(elements, getKey, getSort, container, isList){
+    var map={}, keys=[];
+    elements.forEach(function(el){
+      var k=getKey(el); if(!k) k='其他';
+      if(!map[k]){map[k]=[]; keys.push(k);}
+      map[k].push(el);
+    });
+    keys.sort(function(a,b){return b.localeCompare(a);});
+    keys.forEach(function(k, idx){
+      var arr=map[k].slice();
+      if(getSort) arr.sort(getSort);
+      var built=makeDateGroup(k, arr.length, isList, idx!==0);
+      arr.forEach(function(el){ built.body.appendChild(el); });
+      container.appendChild(built.group);
+    });
+  }
+  // ⭐ 区：28 张卡按日期重组（原按类型的小标题隐藏，类型仍在每张卡的标签上）
+  var starSec=document.querySelector('[data-sec="star"]');
+  var starHost=document.getElementById('starDateGroups');
+  if(starSec && starHost){
+    starSec.querySelectorAll('h3.sub').forEach(function(h){ h.style.display='none'; });
+    var starCards=Array.prototype.slice.call(starSec.querySelectorAll('article.card'));
+    groupByDate(starCards,
+      function(el){ var w=el.querySelector('.when'); return w?w.textContent.trim().split(' ')[0]:''; },
+      function(a,b){
+        var rank={sold:0,label:1,reminder:2,offer:3,message:4,platform:5};
+        var ra=rank[a.getAttribute('data-kind')], rb=rank[b.getAttribute('data-kind')];
+        if(ra===undefined) ra=9; if(rb===undefined) rb=9;
+        if(ra!==rb) return ra-rb;
+        var wa=a.querySelector('.when').textContent.trim(), wb=b.querySelector('.when').textContent.trim();
+        return wb.localeCompare(wa);
+      },
+      starHost, false);
+  }
+  var exBtn=document.getElementById('expandAllStar'), coBtn=document.getElementById('collapseAllStar');
+  function setAllStar(collapsed){
+    if(!starHost) return;
+    starHost.querySelectorAll('.date-group').forEach(function(g){
+      g.classList.toggle('is-collapsed', collapsed);
+      var h=g.querySelector('.date-head'); if(h) h.setAttribute('aria-expanded', collapsed?'false':'true');
+    });
+  }
+  if(exBtn) exBtn.addEventListener('click',function(){ setAllStar(false); });
+  if(coBtn) coBtn.addEventListener('click',function(){ setAllStar(true); });
+  // 一览区：31 行按日期重组
+  var allbox=document.getElementById('allbox');
+  if(allbox){
+    var rowsAll=Array.prototype.slice.call(allbox.querySelectorAll('.row'));
+    var frag=document.createDocumentFragment();
+    // groupByDate appends to a temp container, then move into allbox
+    var tmp=document.createElement('div');
+    groupByDate(rowsAll,
+      function(el){ var d=el.querySelector('.d'); var m=d?d.textContent.match(/(\d{2}-\d{2})/):null; return m?m[1]:''; },
+      null, tmp, true);
+    allbox.innerHTML='';
+    Array.prototype.slice.call(tmp.childNodes).forEach(function(n){ allbox.appendChild(n); });
+  }
+
+  var q = document.getElementById('q');
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-f]'));
+  var kchips = Array.prototype.slice.call(document.querySelectorAll('.chip.kind[data-k]'));
+  var items = Array.prototype.slice.call(document.querySelectorAll('[data-level]'));
+  var sections = Array.prototype.slice.call(document.querySelectorAll('[data-sec]'));
+  var noresult = document.getElementById('noresult');
+  var filter = 'all';
+  var kindFilter = 'all';
+
+  function levelsOf(el){
+    var lv = el.getAttribute('data-levels') || el.getAttribute('data-level') || '';
+    return lv.split(/\s+/);
+  }
+  function apply(){
+    var term = (q.value || '').trim().toLowerCase();
+    var visible = 0;
+    items.forEach(function(el){
+      var okF = (filter === 'all') || (levelsOf(el).indexOf(filter) !== -1);
+      var okK = (kindFilter === 'all') || (el.getAttribute('data-kind') === kindFilter);
+      var okT = !term || (el.getAttribute('data-text') || '').toLowerCase().indexOf(term) !== -1;
+      var show = okF && okK && okT;
+      el.classList.toggle('hidden', !show);
+      if (show) visible++;
+    });
+    // 日期组：没有可见条目的组整组隐藏；正在搜索/筛选时，有结果的组自动展开
+    document.querySelectorAll('.date-group').forEach(function(g){
+      var inner = g.querySelectorAll('[data-level]');
+      if (!inner.length) return;
+      var any = Array.prototype.some.call(inner, function(el){ return !el.classList.contains('hidden'); });
+      g.classList.toggle('hidden', !any);
+      if (any && (term || filter !== 'all' || kindFilter !== 'all')) {
+        g.classList.remove('is-collapsed');
+        var h = g.querySelector('.date-head'); if (h) h.setAttribute('aria-expanded','true');
+      }
+    });
+    sections.forEach(function(sec){
+      var inner = sec.querySelectorAll('[data-level]');
+      if (!inner.length) { sec.classList.remove('hidden'); return; }
+      var any = Array.prototype.some.call(inner, function(el){ return !el.classList.contains('hidden'); });
+      sec.classList.toggle('hidden', !any);
+    });
+    noresult.style.display = visible === 0 ? 'block' : 'none';
+  }
+  q.addEventListener('input', apply);
+  chips.forEach(function(c){
+    c.addEventListener('click', function(){
+      chips.forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+      c.setAttribute('aria-pressed','true');
+      filter = c.getAttribute('data-f');
+      apply();
+    });
+  });
+  kchips.forEach(function(c){
+    c.addEventListener('click', function(){
+      kchips.forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+      c.setAttribute('aria-pressed','true');
+      kindFilter = c.getAttribute('data-k');
+      apply();
+    });
+  });
+
+  var digest = [
+    '📬 GMX 日报 11-17 · 全量 + 附加邮箱合并期（48 小时窗口 · 精简版）',
+    '检查 2021 个邮箱（GMX 2017 + 附加 4）全部登录成功 ✅｜🔴 1｜⭐ 46 条｜🟡 4｜❌ 0',
+    '🔴 jacqueline_scene1975：11-23 前不验证邮箱将被停用、30 天后删除；今日另有 2 封验证邮件，处理在专属聊天定',
+    '⭐ 售出 4 笔：The Row 靴子、Totême 夹克 £95、Sézane 连衣裙 £50、Rick Owens 羽绒服 £120；面单 4 张（截止 11-20 / 11-23 / 11-23 / 11-24）',
+    '⭐ 订单提醒 8 条：含 vinton7 £70 提现、teriaennm498 £28 提现、Kate Spade 订单待到账、Dries van Noten 订单待到账（店名未提炼）、linearout 买家取消申请与 2 封催发货',
+    '⭐ 买家出价 15 封（最高 £175 / 原价 £289；含 quamai36 新出价 £80 / 原价 £120）、买家消息 12 封（只标旗，正文在站内）、平台通知 3 封（重复刊登删帖、商品验证失败后续）',
+    '💷 IBAN 窗口内 0；收藏互动 32 封、普通 5 封、营销 1 封只计数；附加邮箱本期 19 条已并入展示（含盘中轮询新增）',
+    '全量明细（仅 48 小时内）见固定网址日报页'
+  ].join('\n');
+
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    var toast = document.getElementById('toast');
+    function done(){ toast.style.display='inline'; setTimeout(function(){ toast.style.display='none'; }, 2200); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(digest).then(done, function(){ fallback(); });
+    } else { fallback(); }
+    function fallback(){
+      var ta = document.createElement('textarea');
+      ta.value = digest; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch(e){}
+      document.body.removeChild(ta); done();
+    }
+  });
+
+  document.getElementById('csvBtn').addEventListener('click', function(){
+    var rows = [['email','shop','window','level','subject','date','note']];
+    document.querySelectorAll('#allbox .row').forEach(function(r){
+      var a = r.querySelector('.a').textContent.trim();
+      var s = r.querySelector('.s').textContent.trim();
+      var n = r.querySelector('.n') ? r.querySelector('.n').textContent.trim() : '';
+      var d = r.querySelector('.d').textContent.trim();
+      var sh = r.querySelector('.shop') ? r.querySelector('.shop').textContent.replace('店铺 ','').trim() : '';
+      var wn = r.querySelector('.win') ? r.querySelector('.win').textContent.replace('窗口 ','').trim() : '';
+      rows.push([a, sh, wn, d, s, '', n]);
+    });
+    var csv = rows.map(function(r){
+      return r.map(function(c){ return '"' + String(c).replace(/"/g,'""') + '"'; }).join(',');
+    }).join('\r\n');
+    var blob = new Blob(['\ufeff' + csv], {type:'text/csv;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'gmx-daily-2026-11-17-full-48h.csv';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+})();
+</script>
+</body>
+</html>
